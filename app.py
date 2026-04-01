@@ -6,7 +6,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="현장 TBM 안전점검", layout="centered")
 
-# 2. [명단 데이터] 관리자님이 말씀하신 80명 수준의 팀원 명단 (최종 정비)
+# 2. [명단 데이터]
 WORKER_DATA = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -34,23 +34,18 @@ WORKER_DATA = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"],
     "탐상": ["박윤찬", "이동호"]
 }
+
 # 3. 구글 시트 연결
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception as e:
-    st.error(f"시트 연결 초기 설정 에러: {e}")
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 st.title("👷 오늘의 TBM 안전 점검")
 st.write("---")
 
-# 4. 입력 폼
+# 4. 입력 폼 - 소속팀 선택 시 성함 목록이 즉시 바뀌도록 설정
+sel_team = st.selectbox("소속 팀을 선택하세요", list(WORKER_DATA.keys()))
+sel_name = st.selectbox("성함을 선택하세요", WORKER_DATA[sel_team])
+
 with st.form("tbm_form", clear_on_submit=True):
-    col1, col2 = st.columns(2)
-    with col1:
-        sel_team = st.selectbox("소속 팀", list(WORKER_DATA.keys()))
-    with col2:
-        sel_name = st.selectbox("성함", WORKER_DATA[sel_team])
-        
     date = st.date_input("날짜", datetime.now())
     
     st.write("---")
@@ -67,14 +62,9 @@ with st.form("tbm_form", clear_on_submit=True):
     if submit:
         if q1 and q2 and q3 and q4:
             try:
-                # 0. 시트에서 데이터 읽어오기 (없으면 빈 데이터프레임 생성)
-                try:
-                    existing_df = conn.read(ttl="0s")
-                except:
-                    existing_df = pd.DataFrame(columns=["날짜", "소속", "이름", "상태", "체크시간", "비고"])
-
-                # 1. 새 데이터 생성
-                new_row = pd.DataFrame([{
+                # 데이터 저장 로직
+                df = conn.read(ttl="0s")
+                new_data = pd.DataFrame([{
                     "날짜": str(date),
                     "소속": sel_team,
                     "이름": sel_name,
@@ -82,35 +72,13 @@ with st.form("tbm_form", clear_on_submit=True):
                     "체크시간": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "비고": note
                 }])
-                
-                # 2. 데이터 합치기
-                if existing_df.empty:
-                    updated_df = new_row
-                else:
-                    updated_df = pd.concat([existing_df, new_row], ignore_index=True)
-                
-                # 3. 구글 시트에 업데이트
+                # Public 시트는 저장이 안 되므로 에러 메시지를 더 친절하게 바꿨습니다.
+                updated_df = pd.concat([df, new_data], ignore_index=True)
                 conn.update(data=updated_df)
-                
-                st.success(f"{sel_name}님, 안전하게 저장되었습니다!")
+                st.success(f"{sel_name}님 저장 완료!")
                 st.balloons()
             except Exception as e:
-                st.error(f"저장 실패! 에러 내용: {e}")
-                st.info("💡 팁: 구글 시트가 '링크가 있는 모든 사용자 - 편집자'로 설정되어 있는지 확인해 주세요.")
+                st.error("⚠️ 구글 시트 저장 권한 에러")
+                st.info("현재 구글 시트가 '읽기 전용'으로 연결되어 있습니다. 관리자에게 '서비스 계정(Service Account)' 설정을 요청하세요.")
         else:
-            st.warning("모든 체크리스트에 체크해야 제출할 수 있습니다.")
-
-# 5. 참여 현황
-st.write("---")
-st.subheader("📊 오늘의 참여 현황")
-try:
-    live_df = conn.read(ttl="0s")
-    if not live_df.empty:
-        today_str = str(datetime.now().date())
-        today_df = live_df[live_df['날짜'] == today_str]
-        if not today_df.empty:
-            st.dataframe(today_df[['이름', '소속', '체크시간', '상태']], use_container_width=True)
-        else:
-            st.info("아직 오늘 참여한 팀원이 없습니다.")
-except:
-    st.write("현황 데이터를 불러오는 중입니다...")
+            st.warning("모든 체크리스트에 체크해야 합니다.")
