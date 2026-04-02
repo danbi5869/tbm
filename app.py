@@ -6,30 +6,37 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. 앱 설정 및 모바일 아이콘 설정
+# ==========================================
+# 1. [PWA 핵심 설정] 앱 이름 및 아이콘 지정
+# ==========================================
+# 깃허브에 올린 마스코트 이미지 주소 (캐시 방지를 위해 뒤에 ?v=1 추가)
 icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=1"
 
 try:
+    # 로컬에 이미지가 있다면 불러오고, 없다면 이모지로 대체
     img = Image.open("safety_mascot.png")
 except:
     img = "⛑️"
 
 st.set_page_config(
-    page_title="TBM 점검",
-    page_icon=img,
-    layout="centered"
+    page_title="TBM 스마트 체크리스트",  # 브라우저 탭 및 홈 화면 이름
+    page_icon=img,                  # 파비콘 아이콘
+    layout="centered"               # 모바일 최적화 레이아웃
 )
 
-# 모바일 브라우저 홈 화면 추가 시 아이콘 최적화
+# [중요] 아이폰/안드로이드 홈 화면 추가 시 '진짜 앱 아이콘'처럼 보이게 강제 주입
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
         <link rel="icon" type="image/png" href="{icon_url}">
         <link rel="shortcut icon" href="{icon_url}">
+        <meta name="theme-color" content="#FF4B4B"> 
     </head>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 인증 및 연결
+# ==========================================
+# 2. 인증 및 데이터 연결 (구글 시트)
+# ==========================================
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -44,7 +51,7 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [데이터 구성: 소속 및 명단] ---
+# --- [데이터 구성] ---
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -73,12 +80,7 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# --- [공통 체크리스트 항목] ---
-checklist_items = [
-    "개인보호구 착용 상태 확인",
-    "작업 전 위험요인 파악 및 공유",
-    "사용 장비 점검 완료"
-]
+checklist_items = ["개인보호구 착용 상태 확인", "작업 전 위험요인 파악 및 공유", "사용 장비 점검 완료"]
 
 sheet = get_sheet()
 
@@ -86,11 +88,6 @@ if sheet:
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
-        try:
-            st.image("safety_mascot.png", width=100)
-        except:
-            pass
-
         st.header("🏗️ TBM 점검 및 안전일지")
         
         col1, col2 = st.columns(2)
@@ -103,7 +100,7 @@ if sheet:
         st.markdown("---")
         st.subheader(f"📍 {selected_team} - {selected_name}님 점검")
 
-        # 체크박스 생성
+        # 체크리스트 자동 생성
         check_results = []
         for i, item in enumerate(checklist_items):
             res = st.checkbox(f"✅ {item}", key=f"q_{i}")
@@ -134,24 +131,12 @@ if sheet:
 
     with tab2:
         st.header("📊 전체 점검 현황")
-        st.write(f"📅 기준일: {datetime.date.today().isoformat()}")
         try:
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                df.columns = [col.strip() for col in df.columns]
-                today_str = datetime.date.today().isoformat()
-                if '날짜' in df.columns:
-                    today_df = df[df['날짜'] == today_str]
-                    st.metric("오늘 점검 완료", f"{len(today_df)}명")
-                    if not today_df.empty:
-                        show_cols = [c for c in ['시간', '소속', '이름', '상태', '비고'] if c in today_df.columns]
-                        st.dataframe(today_df[show_cols], width="stretch")
-                    else:
-                        st.info("오늘 아직 점검 기록이 없습니다.")
-                else:
-                    st.error("'날짜' 열을 찾을 수 없습니다.")
+                st.dataframe(df.tail(10), width="stretch") # 최근 10건만 표시
             else:
-                st.warning("데이터가 없습니다.")
+                st.info("데이터가 없습니다.")
         except Exception as e:
             st.error(f"데이터 로딩 오류: {e}")
