@@ -49,46 +49,48 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# --- 사이드바 메뉴 ---
-st.sidebar.title("📋 TBM 메뉴")
-menu = st.sidebar.radio("원하는 항목을 선택하세요", ["TBM 점검하기", "전체 점검 현황"])
+# --- 앱 상단 타이틀 ---
+st.set_page_config(page_title="TBM 안전일지", layout="centered")
+
+# --- 버튼식 탭 메뉴 생성 ---
+tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
 sheet = get_sheet()
 
 if sheet:
-    if menu == "TBM 점검하기":
-        st.title("🏗️ TBM 점검 및 안전일지")
+    # --- [탭 1: TBM 점검하기] ---
+    with tab1:
+        st.header("🏗️ TBM 점검 및 안전일지")
         
         col1, col2 = st.columns(2)
         with col1:
-            selected_team = st.selectbox("소속 선택", list(team_data.keys()))
+            selected_team = st.selectbox("소속 선택", list(team_data.keys()), key="team_select")
         with col2:
             member_list = team_data[selected_team]
-            selected_name = st.selectbox("성함 선택", member_list)
+            selected_name = st.selectbox("성함 선택", member_list, key="name_select")
 
         st.markdown("---")
         st.subheader(f"📍 {selected_team} - {selected_name}님 점검")
         
-        q1 = st.checkbox("✅ 개인보호구 착용 상태 확인")
-        q2 = st.checkbox("✅ 작업 전 위험요인 파악 및 공유")
-        q3 = st.checkbox("✅ 사용 장비 점검 완료")
+        q1 = st.checkbox("✅ 개인보호구 착용 상태 확인", key="q1")
+        q2 = st.checkbox("✅ 작업 전 위험요인 파악 및 공유", key="q2")
+        q3 = st.checkbox("✅ 사용 장비 점검 완료", key="q3")
         
         status = "정상" if (q1 and q2 and q3) else "조치 필요"
-        remark = st.text_area("특이사항 (비고)")
+        remark = st.text_area("특이사항 (비고)", key="remark")
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
             fill_color="rgba(255, 165, 0, 0.3)", stroke_width=3, stroke_color="#000000",
-            background_color="#eeeeee", height=150, width=300, drawing_mode="freedraw", key="canvas",
+            background_color="#eeeeee", height=150, width=300, drawing_mode="freedraw", key="canvas_main",
         )
 
-        if st.button("점검 완료 및 시트 저장", use_container_width=True):
+        if st.button("점검 완료 및 시트 저장", use_container_width=True, key="save_btn"):
             if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
             else:
                 now_time = datetime.datetime.now().strftime('%H:%M:%S')
                 today_date = datetime.date.today().isoformat()
-                # 시트 저장 순서: 날짜, 소속, 이름, 상태, 시간, 비고, 서명여부
                 new_row = [today_date, selected_team, selected_name, status, now_time, remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
@@ -97,35 +99,31 @@ if sheet:
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
-    elif menu == "전체 점검 현황":
-        st.title("📊 전체 TBM 점검 현황")
+    # --- [탭 2: 전체 점검 현황] ---
+    with tab2:
+        st.header("📊 전체 점검 현황")
+        st.write(f"📅 기준일: {datetime.date.today().isoformat()}")
         
         try:
-            # 시트의 모든 데이터를 가져옵니다.
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                
-                # 공백 제거 등 열 이름을 깔끔하게 정리합니다.
-                df.columns = [col.strip() for col in df.columns]
+                df.columns = [col.strip() for col in df.columns] # 공백 제거
                 
                 today_str = datetime.date.today().isoformat()
                 
-                # 날짜 열이 있는지 확인 후 필터링
                 if '날짜' in df.columns:
                     today_df = df[df['날짜'] == today_str]
-                    
-                    st.metric("오늘 점검 완료 인원", f"{len(today_df)}명")
+                    st.metric("오늘 점검 완료", f"{len(today_df)}명")
                     
                     if not today_df.empty:
-                        # 존재하는 열만 선택해서 보여줍니다 (에러 방지)
-                        cols_to_show = [c for c in ['시간', '소속', '이름', '상태', '비고'] if c in today_df.columns]
-                        st.dataframe(today_df[cols_to_show], use_container_width=True)
+                        show_cols = [c for c in ['시간', '소속', '이름', '상태', '비고'] if c in today_df.columns]
+                        st.dataframe(today_df[show_cols], use_container_width=True)
                     else:
                         st.info("오늘 아직 점검 기록이 없습니다.")
                 else:
-                    st.error("시트에 '날짜' 열이 보이지 않습니다. 첫 줄 제목을 확인해주세요.")
+                    st.error("'날짜' 열을 찾을 수 없습니다.")
             else:
-                st.warning("시트에 데이터가 없습니다.")
+                st.warning("데이터가 없습니다.")
         except Exception as e:
-            st.error(f"데이터 처리 중 오류 발생: {e}")
+            st.error(f"데이터 로딩 오류: {e}")
