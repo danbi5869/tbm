@@ -11,7 +11,7 @@ try:
     img = Image.open("safety_mascot.png")
     # GitHub의 이미지 원본 주소를 여기에 넣으면 모바일 홈 화면 아이콘으로 강제 인식됩니다.
     # '본인아이디' 부분을 실제 본인의 GitHub ID로 꼭 변경하세요!
-    icon_url = "https://raw.githubusercontent.com/본인아이디/TBM-app/main/safety_mascot.png"
+    icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png"
 except:
     img = "⛑️"
     icon_url = ""
