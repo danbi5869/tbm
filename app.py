@@ -7,13 +7,13 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
 # 1. 앱 설정 및 모바일 아이콘 강제 지정
-# 이미지 파일이름(safety_mascot.png)과 GitHub 아이디(danbi5869)를 반영했습니다.
+# 이미지 경로를 더 확실하게 잡기 위해 캐시 방지 파라미터(?v=1)를 추가했습니다.
+icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=1"
+
 try:
     img = Image.open("safety_mascot.png")
-    icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png"
 except:
     img = "⛑️"
-    icon_url = ""
 
 st.set_page_config(
     page_title="TBM 점검",
@@ -21,10 +21,15 @@ st.set_page_config(
     layout="centered"
 )
 
-# 모바일 홈 화면용 메타 태그 삽입 (홈 화면 추가 시 아이콘 인식률을 높임)
-if icon_url:
-    st.markdown(f'<link rel="apple-touch-icon" href="{icon_url}">', unsafe_allow_html=True)
-    st.markdown(f'<link rel="shortcut icon" href="{icon_url}">', unsafe_allow_html=True)
+# [핵심] 모바일 브라우저에게 아이콘을 강제로 주입하는 코드입니다.
+# 이 부분이 있어야 '빨간 왕관' 대신 '마스코트'가 뜹니다.
+st.markdown(f"""
+    <head>
+        <link rel="apple-touch-icon" href="{icon_url}">
+        <link rel="icon" type="image/png" href="{icon_url}">
+        <link rel="shortcut icon" href="{icon_url}">
+    </head>
+""", unsafe_allow_html=True)
 
 # 2. 인증 및 권한 설정
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -76,13 +81,12 @@ if sheet:
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
-        # --- [마스코트 이미지 노출 섹션] ---
-        # 파일이 존재하면 화면 중앙에 마스코트를 먼저 보여줍니다.
+        # 화면 상단에 마스코트가 나오는지 확인용 (성공하면 나중에 이 줄만 지우셔도 됩니다)
         try:
-            st.image("safety_mascot.png", width=120)
+            st.image("safety_mascot.png", width=100)
         except:
             pass
-            
+
         st.header("🏗️ TBM 점검 및 안전일지")
         
         col1, col2 = st.columns(2)
