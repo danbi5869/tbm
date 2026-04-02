@@ -6,8 +6,7 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. 앱 설정 및 모바일 아이콘 강제 지정
-# 이미지 경로를 더 확실하게 잡기 위해 캐시 방지 파라미터(?v=1)를 추가했습니다.
+# 1. 앱 설정 및 모바일 아이콘 설정
 icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=1"
 
 try:
@@ -21,8 +20,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# [핵심] 모바일 브라우저에게 아이콘을 강제로 주입하는 코드입니다.
-# 이 부분이 있어야 '빨간 왕관' 대신 '마스코트'가 뜹니다.
+# 모바일 브라우저 홈 화면 추가 시 아이콘 최적화
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
@@ -31,7 +29,7 @@ st.markdown(f"""
     </head>
 """, unsafe_allow_html=True)
 
-# 2. 인증 및 권한 설정
+# 2. 구글 시트 인증 및 연결
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -46,7 +44,7 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [소속 및 명단 데이터] ---
+# --- [데이터 구성: 소속 및 명단] ---
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -75,13 +73,19 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
+# --- [공통 체크리스트 항목] ---
+checklist_items = [
+    "개인보호구 착용 상태 확인",
+    "작업 전 위험요인 파악 및 공유",
+    "사용 장비 점검 완료"
+]
+
 sheet = get_sheet()
 
 if sheet:
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
-        # 화면 상단에 마스코트가 나오는지 확인용 (성공하면 나중에 이 줄만 지우셔도 됩니다)
         try:
             st.image("safety_mascot.png", width=100)
         except:
@@ -98,10 +102,14 @@ if sheet:
 
         st.markdown("---")
         st.subheader(f"📍 {selected_team} - {selected_name}님 점검")
-        q1 = st.checkbox("✅ 개인보호구 착용 상태 확인", key="q1")
-        q2 = st.checkbox("✅ 작업 전 위험요인 파악 및 공유", key="q2")
-        q3 = st.checkbox("✅ 사용 장비 점검 완료", key="q3")
-        status = "정상" if (q1 and q2 and q3) else "조치 필요"
+
+        # 체크박스 생성
+        check_results = []
+        for i, item in enumerate(checklist_items):
+            res = st.checkbox(f"✅ {item}", key=f"q_{i}")
+            check_results.append(res)
+
+        status = "정상" if all(check_results) else "조치 필요"
         remark = st.text_area("특이사항 (비고)", key="remark")
 
         st.write("✒️ **서명**")
