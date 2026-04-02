@@ -6,17 +6,26 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. 앱 설정 (최상단 유지)
+# 1. 앱 설정 및 모바일 아이콘 강제 지정
 try:
     img = Image.open("safety_mascot.png")
+    # GitHub의 이미지 원본 주소를 여기에 넣으면 모바일 홈 화면 아이콘으로 강제 인식됩니다.
+    # '본인아이디' 부분을 실제 본인의 GitHub ID로 꼭 변경하세요!
+    icon_url = "https://raw.githubusercontent.com/본인아이디/TBM-app/main/safety_mascot.png"
 except:
     img = "⛑️"
+    icon_url = ""
 
 st.set_page_config(
     page_title="TBM 점검",
     page_icon=img,
     layout="centered"
 )
+
+# 모바일 홈 화면용 메타 태그 삽입
+if icon_url:
+    st.markdown(f'<link rel="apple-touch-icon" href="{icon_url}">', unsafe_allow_html=True)
+    st.markdown(f'<link rel="shortcut icon" href="{icon_url}">', unsafe_allow_html=True)
 
 # 2. 인증 및 권한 설정
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -67,10 +76,8 @@ sheet = get_sheet()
 if sheet:
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
-    # --- [탭 1: TBM 점검하기] ---
     with tab1:
         st.header("🏗️ TBM 점검 및 안전일지")
-        
         col1, col2 = st.columns(2)
         with col1:
             selected_team = st.selectbox("소속 선택", list(team_data.keys()), key="team_select")
@@ -80,11 +87,9 @@ if sheet:
 
         st.markdown("---")
         st.subheader(f"📍 {selected_team} - {selected_name}님 점검")
-        
         q1 = st.checkbox("✅ 개인보호구 착용 상태 확인", key="q1")
         q2 = st.checkbox("✅ 작업 전 위험요인 파악 및 공유", key="q2")
         q3 = st.checkbox("✅ 사용 장비 점검 완료", key="q3")
-        
         status = "정상" if (q1 and q2 and q3) else "조치 필요"
         remark = st.text_area("특이사항 (비고)", key="remark")
 
@@ -94,7 +99,6 @@ if sheet:
             background_color="#eeeeee", height=150, width=300, drawing_mode="freedraw", key="canvas_main",
         )
 
-        # 수정된 부분: use_container_width=True -> width="stretch"
         if st.button("점검 완료 및 시트 저장", width="stretch", key="save_btn"):
             if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
@@ -109,26 +113,20 @@ if sheet:
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
-    # --- [탭 2: 전체 점검 현황] ---
     with tab2:
         st.header("📊 전체 점검 현황")
         st.write(f"📅 기준일: {datetime.date.today().isoformat()}")
-        
         try:
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
                 df.columns = [col.strip() for col in df.columns]
-                
                 today_str = datetime.date.today().isoformat()
-                
                 if '날짜' in df.columns:
                     today_df = df[df['날짜'] == today_str]
                     st.metric("오늘 점검 완료", f"{len(today_df)}명")
-                    
                     if not today_df.empty:
                         show_cols = [c for c in ['시간', '소속', '이름', '상태', '비고'] if c in today_df.columns]
-                        # 수정된 부분: use_container_width=True -> width="stretch"
                         st.dataframe(today_df[show_cols], width="stretch")
                     else:
                         st.info("오늘 아직 점검 기록이 없습니다.")
