@@ -6,9 +6,8 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. 앱 설정 및 모바일 아이콘 강제 지정 (PWA 최적화)
-# 아이콘이 안 바뀔 때는 파일명 뒤의 v= 숫자를 높여보세요 (예: ?v=2)
-icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=2"
+# 1. 앱 설정 및 아이콘 (캐시 방지를 위해 v 숫자를 높였습니다)
+icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=15"
 
 try:
     img = Image.open("safety_mascot.png")
@@ -21,37 +20,41 @@ st.set_page_config(
     layout="centered"
 )
 
-# [앱처럼 보이게 하는 마법의 설정]
-# 1) 아이콘 강제 주입 2) 주소창 숨기기 3) 스트림릿 메뉴 숨기기
+# [진짜 앱처럼 만들기: 주소창, 메뉴, 하단 로고 모두 제거]
 st.markdown(f"""
+    <style>
+        /* 1. 상단 헤더, 메뉴, 하단 로고(Footer) 전체 숨기기 */
+        header {{visibility: hidden !important;}}
+        #MainMenu {{visibility: hidden !important;}}
+        footer {{visibility: hidden !important;}}
+        
+        /* 2. 하단 로고를 감싸는 컨테이너까지 제거 */
+        .st-emotion-cache-16471hc {{display: none !important;}}
+        .st-emotion-cache-ch5vc {{display: none !important;}}
+
+        /* 3. 모바일 앱 느낌을 위해 여백 최소화 */
+        .block-container {{
+            padding-top: 1rem !important;
+            padding-bottom: 0rem !important;
+        }}
+        
+        /* 4. 버튼 디자인 (모바일 터치 최적화) */
+        .stButton>button {{
+            width: 100%;
+            border-radius: 12px;
+            height: 3.5em;
+            background-color: #FF4B4B;
+            color: white;
+            font-weight: bold;
+            border: none;
+        }}
+    </style>
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
         <link rel="icon" type="image/png" href="{icon_url}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     </head>
-    <style>
-        /* 상단 햄버거 메뉴와 하단 Footer 숨기기 */
-        #MainMenu {{visibility: hidden;}}
-        footer {{visibility: hidden;}}
-        header {{visibility: hidden;}}
-        
-        /* 모바일 앱 느낌을 위해 상단 여백 조절 */
-        .block-container {{
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }}
-        
-        /* 버튼을 더 크게 만들어 터치하기 쉽게 변경 */
-        .stButton>button {{
-            width: 100%;
-            border-radius: 10px;
-            height: 3em;
-            background-color: #FF4B4B;
-            color: white;
-            font-weight: bold;
-        }}
-    </style>
 """, unsafe_allow_html=True)
 
 # 2. 구글 시트 인증 및 연결
@@ -98,7 +101,6 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# 공통 체크리스트 항목
 checklist_items = ["개인보호구 착용 상태 확인", "작업 전 위험요인 파악 및 공유", "사용 장비 점검 완료"]
 
 sheet = get_sheet()
@@ -109,7 +111,7 @@ if sheet:
     with tab1:
         # 상단 마스코트 표시
         try:
-            st.image("safety_mascot.png", width=80)
+            st.image("safety_mascot.png", width=70)
         except:
             pass
 
@@ -131,7 +133,7 @@ if sheet:
             check_results.append(res)
 
         status = "정상" if all(check_results) else "조치 필요"
-        remark = st.text_area("특이사항 (비고)", placeholder="특이사항이 있으면 입력하세요.", key="remark")
+        remark = st.text_area("특이사항 (비고)", placeholder="내용을 입력하세요.", key="remark")
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
@@ -148,13 +150,13 @@ if sheet:
                 new_row = [today_date, selected_team, selected_name, status, now_time, remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
-                    st.success(f"🎉 {selected_name}님, 저장 완료!")
+                    st.success(f"🎉 저장 완료!")
                     st.balloons()
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
     with tab2:
-        st.subheader("📊 오늘의 점검 현황")
+        st.subheader("📊 오늘 점검 현황")
         try:
             records = sheet.get_all_records()
             if records:
@@ -162,9 +164,7 @@ if sheet:
                 today_str = datetime.date.today().isoformat()
                 if '날짜' in df.columns:
                     today_df = df[df['날짜'] == today_str]
-                    st.metric("오늘 완료 인원", f"{len(today_df)}명")
+                    st.metric("오늘 완료", f"{len(today_df)}명")
                     st.dataframe(today_df.tail(10), use_container_width=True)
-            else:
-                st.info("기록된 데이터가 없습니다.")
-        except Exception as e:
-            st.error(f"현황 로딩 오류: {e}")
+        except:
+            st.info("기록을 불러올 수 없습니다.")
