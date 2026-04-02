@@ -2,6 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import datetime
+import pandas as pd # 데이터 표 표시용
 from streamlit_drawable_canvas import st_canvas
 
 # 1. 인증 및 권한 설정
@@ -9,11 +10,9 @@ scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis
 
 def get_sheet():
     try:
-        # Streamlit Cloud Secrets에서 인증 정보 불러오기
         creds_info = st.secrets["gcp_service_account"]
         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
         client = gspread.authorize(creds)
-        # 구글 시트 ID (사용자님 시트)
         sheet_id = "1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc"
         return client.open_by_key(sheet_id).get_worksheet(0)
     except Exception as e:
@@ -90,26 +89,44 @@ if sheet:
 
     # 4. 저장 버튼
     if st.button("점검 완료 및 시트 저장", use_container_width=True):
-        # 서명 확인 로직
         if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
             st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
         else:
             now_time = datetime.datetime.now().strftime('%H:%M:%S')
             today_date = datetime.date.today().isoformat()
             
-            new_row = [
-                today_date,      # 날짜
-                selected_team,   # 소속
-                selected_name,   # 이름
-                status,          # 상태
-                now_time,        # 시간
-                remark,          # 비고
-                "서명완료"        # 서명여부
-            ]
+            new_row = [today_date, selected_team, selected_name, status, now_time, remark, "서명완료"]
             
             try:
                 sheet.append_row(new_row)
-                st.success(f"🎉 {selected_name}님, 데이터가 구글 시트에 저장되었습니다!")
+                st.success(f"🎉 {selected_name}님, 저장이 완료되었습니다!")
                 st.balloons()
+                st.rerun() # 저장 후 목록 새로고침
             except Exception as e:
                 st.error(f"저장 중 오류 발생: {e}")
+
+    # 5. 참여 확인 기능 (오늘 기록 불러오기)
+    st.markdown("---")
+    st.subheader("📋 오늘의 나의 점검 기록")
+    
+    try:
+        # 전체 데이터 불러오기
+        data = sheet.get_all_records()
+        if data:
+            df = pd.DataFrame(data)
+            today_str = datetime.date.today().isoformat()
+            
+            # 오늘 날짜 + 선택한 이름과 일치하는 데이터만 필터링
+            my_today_records = df[(df['날짜'] == today_str) & (df['이름'] == selected_name)]
+            
+            if not my_today_records.empty:
+                st.write(f"✅ {selected_name}님은 오늘 점검을 완료하셨습니다.")
+                # 필요한 열만 추출해서 표시
+                display_df = my_today_records[['시간', '소속', '이름', '상태']]
+                st.table(display_df)
+            else:
+                st.write("❔ 아직 오늘 기록된 점검 내역이 없습니다.")
+        else:
+            st.write("시트에 데이터가 없습니다.")
+    except Exception as e:
+        st.write("기록을 불러오는 중입니다...") # 시트 헤더가 없거나 초기 단계일 때
