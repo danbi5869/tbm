@@ -5,7 +5,15 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. 인증 및 권한 설정
+# 1. 앱 설정 (브라우저 탭 이름 및 아이콘 설정)
+# 이 부분이 앱의 이름을 결정합니다!
+st.set_page_config(
+    page_title="TBM 점검",        # 브라우저 탭에 표시될 이름
+    page_icon="🏗️",               # 브라우저 탭 아이콘 (이모지)
+    layout="centered"             # 화면 레이아웃 설정
+)
+
+# 2. 인증 및 권한 설정
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -48,9 +56,6 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"],
     "탐상": ["박윤찬", "이동호"]
 }
-
-# --- 앱 상단 타이틀 ---
-st.set_page_config(page_title="TBM 안전일지", layout="centered")
 
 # --- 버튼식 탭 메뉴 생성 ---
 tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
