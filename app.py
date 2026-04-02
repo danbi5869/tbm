@@ -8,7 +8,7 @@ from streamlit_drawable_canvas import st_canvas
 
 # 1. 앱 설정 (최상단 유지)
 try:
-    img = Image.open("safety_mascot.png")
+    img = Image.open("safety_mascoat.png")
 except:
     img = "⛑️"
 
