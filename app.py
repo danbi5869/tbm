@@ -1,14 +1,13 @@
 import streamlit as st
-from PIL import Image  # 이미지 처리를 위해 최상단에 위치
+from PIL import Image
 import gspread
 from google.oauth2.service_account import Credentials
 import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# [중요] 1. 앱 설정: 다른 모든 st. 함수보다 반드시 먼저 실행되어야 함
+# 1. 앱 설정 (최상단 유지)
 try:
-    # GitHub에 올린 파일명과 일치해야 합니다.
     img = Image.open("safety_mascot.png")
 except:
     img = "⛑️"
@@ -25,11 +24,9 @@ scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis
 @st.cache_resource
 def get_sheet():
     try:
-        # Streamlit Secrets에 저장된 GCP 서비스 계정 정보 사용
         creds_info = st.secrets["gcp_service_account"]
         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
         client = gspread.authorize(creds)
-        # 본인의 구글 시트 ID (이미 설정된 값 유지)
         sheet_id = "1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc"
         return client.open_by_key(sheet_id).get_worksheet(0)
     except Exception as e:
@@ -65,11 +62,9 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# --- 앱 메인 화면 구성 ---
 sheet = get_sheet()
 
 if sheet:
-    # 버튼식 탭 메뉴 생성
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     # --- [탭 1: TBM 점검하기] ---
@@ -99,13 +94,13 @@ if sheet:
             background_color="#eeeeee", height=150, width=300, drawing_mode="freedraw", key="canvas_main",
         )
 
-        if st.button("점검 완료 및 시트 저장", use_container_width=True, key="save_btn"):
+        # 수정된 부분: use_container_width=True -> width="stretch"
+        if st.button("점검 완료 및 시트 저장", width="stretch", key="save_btn"):
             if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
             else:
                 now_time = datetime.datetime.now().strftime('%H:%M:%S')
                 today_date = datetime.date.today().isoformat()
-                # 구글 시트에 저장될 데이터 구성
                 new_row = [today_date, selected_team, selected_name, status, now_time, remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
@@ -123,7 +118,7 @@ if sheet:
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                df.columns = [col.strip() for col in df.columns] # 공백 제거
+                df.columns = [col.strip() for col in df.columns]
                 
                 today_str = datetime.date.today().isoformat()
                 
@@ -133,7 +128,8 @@ if sheet:
                     
                     if not today_df.empty:
                         show_cols = [c for c in ['시간', '소속', '이름', '상태', '비고'] if c in today_df.columns]
-                        st.dataframe(today_df[show_cols], use_container_width=True)
+                        # 수정된 부분: use_container_width=True -> width="stretch"
+                        st.dataframe(today_df[show_cols], width="stretch")
                     else:
                         st.info("오늘 아직 점검 기록이 없습니다.")
                 else:
