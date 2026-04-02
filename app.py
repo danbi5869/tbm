@@ -6,37 +6,55 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# ==========================================
-# 1. [PWA 핵심 설정] 앱 이름 및 아이콘 지정
-# ==========================================
-# 깃허브에 올린 마스코트 이미지 주소 (캐시 방지를 위해 뒤에 ?v=1 추가)
-icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=1"
+# 1. 앱 설정 및 모바일 아이콘 강제 지정 (PWA 최적화)
+# 아이콘이 안 바뀔 때는 파일명 뒤의 v= 숫자를 높여보세요 (예: ?v=2)
+icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=2"
 
 try:
-    # 로컬에 이미지가 있다면 불러오고, 없다면 이모지로 대체
     img = Image.open("safety_mascot.png")
 except:
     img = "⛑️"
 
 st.set_page_config(
-    page_title="TBM 스마트 체크리스트",  # 브라우저 탭 및 홈 화면 이름
-    page_icon=img,                  # 파비콘 아이콘
-    layout="centered"               # 모바일 최적화 레이아웃
+    page_title="TBM 스마트 체크리스트",
+    page_icon=img,
+    layout="centered"
 )
 
-# [중요] 아이폰/안드로이드 홈 화면 추가 시 '진짜 앱 아이콘'처럼 보이게 강제 주입
+# [앱처럼 보이게 하는 마법의 설정]
+# 1) 아이콘 강제 주입 2) 주소창 숨기기 3) 스트림릿 메뉴 숨기기
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{icon_url}">
         <link rel="icon" type="image/png" href="{icon_url}">
-        <link rel="shortcut icon" href="{icon_url}">
-        <meta name="theme-color" content="#FF4B4B"> 
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     </head>
+    <style>
+        /* 상단 햄버거 메뉴와 하단 Footer 숨기기 */
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        header {{visibility: hidden;}}
+        
+        /* 모바일 앱 느낌을 위해 상단 여백 조절 */
+        .block-container {{
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }}
+        
+        /* 버튼을 더 크게 만들어 터치하기 쉽게 변경 */
+        .stButton>button {{
+            width: 100%;
+            border-radius: 10px;
+            height: 3em;
+            background-color: #FF4B4B;
+            color: white;
+            font-weight: bold;
+        }}
+    </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 2. 인증 및 데이터 연결 (구글 시트)
-# ==========================================
+# 2. 구글 시트 인증 및 연결
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -51,7 +69,7 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [데이터 구성] ---
+# --- [데이터 구성: 소속 및 명단] ---
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -80,42 +98,48 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
+# 공통 체크리스트 항목
 checklist_items = ["개인보호구 착용 상태 확인", "작업 전 위험요인 파악 및 공유", "사용 장비 점검 완료"]
 
 sheet = get_sheet()
 
 if sheet:
-    tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
+    tab1, tab2 = st.tabs(["📝 TBM 점검", "📊 현황판"])
 
     with tab1:
-        st.header("🏗️ TBM 점검 및 안전일지")
+        # 상단 마스코트 표시
+        try:
+            st.image("safety_mascot.png", width=80)
+        except:
+            pass
+
+        st.subheader("🏗️ 안전 점검 일지")
         
         col1, col2 = st.columns(2)
         with col1:
-            selected_team = st.selectbox("소속 선택", list(team_data.keys()), key="team_select")
+            selected_team = st.selectbox("소속", list(team_data.keys()), key="team_select")
         with col2:
             member_list = team_data[selected_team]
-            selected_name = st.selectbox("성함 선택", member_list, key="name_select")
+            selected_name = st.selectbox("성함", member_list, key="name_select")
 
         st.markdown("---")
-        st.subheader(f"📍 {selected_team} - {selected_name}님 점검")
-
+        
         # 체크리스트 자동 생성
         check_results = []
         for i, item in enumerate(checklist_items):
-            res = st.checkbox(f"✅ {item}", key=f"q_{i}")
+            res = st.checkbox(f" {item}", key=f"q_{i}")
             check_results.append(res)
 
         status = "정상" if all(check_results) else "조치 필요"
-        remark = st.text_area("특이사항 (비고)", key="remark")
+        remark = st.text_area("특이사항 (비고)", placeholder="특이사항이 있으면 입력하세요.", key="remark")
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
             fill_color="rgba(255, 165, 0, 0.3)", stroke_width=3, stroke_color="#000000",
-            background_color="#eeeeee", height=150, width=300, drawing_mode="freedraw", key="canvas_main",
+            background_color="#f0f2f6", height=150, width=330, drawing_mode="freedraw", key="canvas_main",
         )
 
-        if st.button("점검 완료 및 시트 저장", width="stretch", key="save_btn"):
+        if st.button("점검 완료 및 저장"):
             if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
             else:
@@ -130,13 +154,17 @@ if sheet:
                     st.error(f"저장 실패: {e}")
 
     with tab2:
-        st.header("📊 전체 점검 현황")
+        st.subheader("📊 오늘의 점검 현황")
         try:
             records = sheet.get_all_records()
             if records:
                 df = pd.DataFrame(records)
-                st.dataframe(df.tail(10), width="stretch") # 최근 10건만 표시
+                today_str = datetime.date.today().isoformat()
+                if '날짜' in df.columns:
+                    today_df = df[df['날짜'] == today_str]
+                    st.metric("오늘 완료 인원", f"{len(today_df)}명")
+                    st.dataframe(today_df.tail(10), use_container_width=True)
             else:
-                st.info("데이터가 없습니다.")
+                st.info("기록된 데이터가 없습니다.")
         except Exception as e:
-            st.error(f"데이터 로딩 오류: {e}")
+            st.error(f"현황 로딩 오류: {e}")
