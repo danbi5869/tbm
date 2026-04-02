@@ -1,3 +1,5 @@
 streamlit
+gspread
+google-auth
+streamlit-drawable-canvas
 pandas
-st-gsheets-connection
