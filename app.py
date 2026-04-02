@@ -7,10 +7,9 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
 # 1. 앱 설정 및 모바일 아이콘 강제 지정
+# 이미지 파일이름(safety_mascot.png)과 GitHub 아이디(danbi5869)를 반영했습니다.
 try:
     img = Image.open("safety_mascot.png")
-    # GitHub의 이미지 원본 주소를 여기에 넣으면 모바일 홈 화면 아이콘으로 강제 인식됩니다.
-    # '본인아이디' 부분을 실제 본인의 GitHub ID로 꼭 변경하세요!
     icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png"
 except:
     img = "⛑️"
@@ -22,7 +21,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 모바일 홈 화면용 메타 태그 삽입
+# 모바일 홈 화면용 메타 태그 삽입 (홈 화면 추가 시 아이콘 인식률을 높임)
 if icon_url:
     st.markdown(f'<link rel="apple-touch-icon" href="{icon_url}">', unsafe_allow_html=True)
     st.markdown(f'<link rel="shortcut icon" href="{icon_url}">', unsafe_allow_html=True)
@@ -77,7 +76,15 @@ if sheet:
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
+        # --- [마스코트 이미지 노출 섹션] ---
+        # 파일이 존재하면 화면 중앙에 마스코트를 먼저 보여줍니다.
+        try:
+            st.image("safety_mascot.png", width=120)
+        except:
+            pass
+            
         st.header("🏗️ TBM 점검 및 안전일지")
+        
         col1, col2 = st.columns(2)
         with col1:
             selected_team = st.selectbox("소속 선택", list(team_data.keys()), key="team_select")
