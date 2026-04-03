@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 정중앙 정렬 강화]
+# [5. 스타일 디자인 - 절대적 가운데 정렬]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -72,23 +72,32 @@ st.markdown("""
         .main-header { background-color: #1E3A8A; padding: 1.5rem 0; border-radius: 0 0 20px 20px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2.2rem; margin: 0; }
         
-        .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        /* 전체 컨테이너를 중앙으로 정렬 */
+        .block-container { 
+            background-color: #ffffff; 
+            padding: 2rem !important; 
+            border-radius: 15px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 가로 중앙 */
+        }
         
-        /* 버튼 공통 스타일 및 가운데 정렬 강제 */
+        /* 버튼 영역 정렬 */
         .stButton {
             display: flex;
             justify-content: center;
-            width: 100%;
+            width: 100% !important;
         }
         
-        .stButton>button { 
-            width: 100%; 
-            max-width: 350px; /* 버튼의 최대 너비 제한 */
+        .stButton > button { 
+            width: 320px !important; /* 고정 너비로 중앙 밸런스 유지 */
             border-radius: 12px; 
             height: 4.8rem; 
-            font-size: 20px !important; 
+            font-size: 19px !important; 
             font-weight: 700 !important; 
-            margin: 0.5rem 0; /* 버튼 사이 간격 */
+            margin: 10px auto !important; 
+            display: block !important;
         }
         
         div.stButton > button:has(div:contains("TBM 점검 작성")),
@@ -96,12 +105,10 @@ st.markdown("""
         div.stButton > button:has(div:contains("관리자 페이지")) {
             background-color: #ffffff; border: 2.5px solid #1E3A8A; color: #1E3A8A !important;
         }
-        .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
         
-        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; max-width: 120px; }
-        div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; height: 3.5rem; border: none !important; }
+        .stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
         
-        /* 공지 박스 가운데 정렬 */
+        /* 공지 박스 중앙 정렬 */
         .notice-wrapper {
             display: flex;
             justify-content: center;
@@ -115,9 +122,9 @@ st.markdown("""
             border-radius: 10px; 
             color: #1E3A8A; 
             font-size: 17px; 
-            display: inline-block;
             text-align: left;
-            max-width: 85%;
+            width: auto;
+            max-width: 90%;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -127,7 +134,7 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # 공지사항 영역
+    # 공지사항
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-wrapper">
@@ -137,7 +144,7 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    # 버튼 영역 (이제 컬럼 없이 CSS flex로 정가운데 정렬됩니다)
+    # 버튼 (st.columns를 제거하고 CSS flex로만 제어하여 치우침 방지)
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
         
@@ -149,6 +156,7 @@ if st.session_state.page == "main":
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
+    # 작성 페이지에서는 버튼이 중앙일 필요가 없으므로 일반 배치
     if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
         
