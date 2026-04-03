@@ -64,31 +64,31 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 모바일 한 줄 고정 및 가로스크롤 방지 강력 적용]
+# [5. 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
         
-        /* 1. 상단 네비게이션 버튼 한 줄 강제 고정 */
+        /* 상단 네비게이션 버튼 한 줄 강제 고정 */
         div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: nowrap !important; /* 줄바꿈 금지 */
+            flex-wrap: nowrap !important;
             align-items: center !important;
             gap: 5px !important;
         }
         
-        /* 컬럼 너비를 내용에 맞게 자동 조절 */
         div[data-testid="column"] {
             width: fit-content !important;
             flex: unset !important;
             min-width: unset !important;
         }
 
-        /* 2. 네비게이션용 작은 버튼 전용 스타일 */
-        div.stButton > button:has(div:contains("메인으로")),
+        /* 네비게이션용 버튼 스타일 */
         div.stButton > button:has(div:contains("현황 확인")),
+        div.stButton > button:has(div:contains("현황")),
+        div.stButton > button:has(div:contains("메인으로")),
         div.stButton > button:has(div:contains("메인")) { 
             height: 2.2rem !important; 
             min-height: 2.2rem !important; 
@@ -97,17 +97,16 @@ st.markdown("""
             padding: 0 12px !important;
             border-radius: 8px !important;
             width: auto !important;
-            white-space: nowrap !important; /* 글자 두 줄 방지 */
+            white-space: nowrap !important;
             border: 1px solid #cbd5e1 !important;
         }
 
-        /* 3. 표(DataFrame) 가로 스크롤 및 글자 겹침 방지 */
+        /* 표 가로 스크롤 방지 */
         [data-testid="stTable"] td, [data-testid="stTable"] th, .stDataFrame div {
             font-size: 12px !important;
-            white-space: nowrap !important; /* 표 내부 글자 한 줄 유지 */
+            white-space: nowrap !important;
         }
         
-        /* 메인 헤더 최적화 */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1rem 0.5rem; 
@@ -117,7 +116,6 @@ st.markdown("""
         }
         .main-header h1 { color: white !important; font-size: 1.5rem !important; margin: 0; }
         
-        /* 간격 조절 */
         .stSelectbox, .stTextInput { margin-bottom: -10px !important; }
     </style>
 """, unsafe_allow_html=True)
@@ -138,14 +136,14 @@ if st.session_state.page == "main":
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    # --- 네비게이션 버튼 (모바일 한 줄 고정) ---
-    nav_col1, nav_col2, _ = st.columns([1, 1.2, 2]) 
+    # --- 네비게이션 버튼 순서 변경 (현황 확인이 앞으로) ---
+    nav_col1, nav_col2, _ = st.columns([1.2, 1, 2]) 
     with nav_col1:
-        if st.button("⬅️ 메인으로"):
-            st.session_state.page = "main"; st.rerun()
-    with nav_col2:
         if st.button("📊 현황 확인"):
             st.session_state.page = "tbm_status"; st.rerun()
+    with nav_col2:
+        if st.button("⬅️ 메인으로"):
+            st.session_state.page = "main"; st.rerun()
             
     st.markdown("---")
     st.subheader("🏗️ TBM 점검 작성")
@@ -158,7 +156,6 @@ elif st.session_state.page == "tbm_write":
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
     st.write("**✅ 공통 안전점검 사항**")
-    # 컬럼 너비를 타이트하게 조정하여 가로 스크롤 제거
     col_config = {
         "작업명": st.column_config.TextColumn("항목", width=50), 
         "점검내용": st.column_config.TextColumn("내용", width=190), 
