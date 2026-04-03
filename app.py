@@ -122,15 +122,17 @@ if sheet:
         df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="ed_common", column_config=col_config)
 
         df_specific = None
+        remark = ""
         if selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검</div>', unsafe_allow_html=True)
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
             df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="ed_spec", column_config=spec_config)
 
+        remark = st.text_area("✍️ 특이사항 (비고)", placeholder="필요시 입력해 주세요.", key="remark_input")
+        
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
 
-        # [수정 포인트] 저장 버튼 클릭 시 메시지 강화
         if st.button("점검 완료 및 저장"):
             if not input_name or not selected_job: 
                 st.warning("⚠️ 성함과 작업명을 모두 선택해 주세요.")
@@ -142,34 +144,40 @@ if sheet:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
                         now = datetime.datetime.now()
-                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"])
-                        
-                        # ✅ 사용자가 요청한 "점검 완료했습니다" 메시지 출력
+                        # 저장 순서: 날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명여부
+                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), remark, "✅ 완료"])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
-                        st.balloons() # 축하 풍선 효과
-                        time.sleep(2) # 메시지를 볼 수 있게 2초 대기
-                        st.rerun() # 화면 초기화
+                        st.balloons()
+                        time.sleep(2)
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"저장 중 오류가 발생했습니다: {e}")
+                        st.error(f"저장 중 오류 발생: {e}")
 
-    # --- TAB 2: 전체 점검 현황 (복구 완료) ---
+    # --- TAB 2: 전체 점검 현황 (컬럼 순서 수정) ---
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
         with c_date: s_date = st.date_input("📅 날짜 선택", datetime.date.today())
-        with c_name: s_name = st.text_input("👤 이름 검색", placeholder="검색어 입력")
+        with c_name: s_name = st.text_input("👤 이름 검색")
         
         try:
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
+                # 헤더 세팅
                 df_all = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
-                df_f = df_all[df_all.iloc[:, 0] == s_date.isoformat()]
-                if s_name: df_f = df_f[df_f.iloc[:, 2].str.contains(s_name, na=False)]
+                # 날짜 필터링
+                df_f = df_all[df_all['날짜'] == s_date.isoformat()]
+                # 이름 필터링
+                if s_name: 
+                    df_f = df_f[df_f['이름'].str.contains(s_name, na=False)]
+                
+                # 시각적 가독성을 위해 컬럼 순서 재배치 (비고와 서명 위치 확인)
+                # 시트 저장 순서가 [날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명] 인 경우 그대로 출력
                 st.dataframe(df_f, use_container_width=True, hide_index=True)
-            else: st.info("기록된 점검 데이터가 없습니다.")
+            else: st.info("기록된 데이터가 없습니다.")
         except: st.error("데이터 로딩 중 오류가 발생했습니다.")
 
-    # --- TAB 3: 관리자 설정 (복구 완료) ---
+    # --- TAB 3: 관리자 설정 ---
     with tab3:
         st.subheader("⚙️ 관리자 설정")
         if not st.session_state.admin_logged_in:
