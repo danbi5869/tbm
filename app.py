@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인]
+# [5. 스타일 디자인 - 네비게이션 버튼 최적화]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -107,6 +107,7 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
+        /* 메인 화면 큰 버튼 */
         div.stButton {
             display: flex;
             justify-content: center;
@@ -128,20 +129,30 @@ st.markdown("""
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0 15px !important;
             transition: 0.2s;
         }
         .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
 
-        /* 상단 네비게이션용 특수 버튼 스타일 */
+        /* 상단 네비게이션용 작은 버튼 스타일 */
         div.stButton > button:has(div:contains("메인으로")),
         div.stButton > button:has(div:contains("현황 확인")) { 
-            height: 3rem !important; min-height: 3rem !important; 
-            font-size: 15px !important; margin: 5px 0 !important;
+            height: 2.2rem !important; 
+            min-height: 2.2rem !important; 
+            font-size: 13px !important; 
+            margin: 0 !important; 
+            padding: 0 10px !important;
+            border-radius: 8px !important;
+            width: auto !important;
+            border: 1px solid #cbd5e1 !important;
         }
         
         div.stButton > button:has(div:contains("메인으로")) {
-            background-color: #E2E8F0 !important; color: #475569 !important; border: none !important;
+            background-color: #E2E8F0 !important; color: #475569 !important;
+        }
+
+        /* 가로 배치 간격 조정 */
+        div[data-testid="stHorizontalBlock"] {
+            gap: 8px !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -171,17 +182,16 @@ if st.session_state.page == "main":
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    # --- 상단 버튼 로직 적용 시작 ---
-    nav_col1, nav_col2 = st.columns(2)
+    # 상단 버튼 가로 밀착 배치
+    nav_col1, nav_col2, nav_spacer = st.columns([0.8, 1, 3]) 
     with nav_col1:
         if st.button("⬅️ 메인으로"):
             st.session_state.page = "main"; st.rerun()
     with nav_col2:
         if st.button("📊 현황 확인"):
             st.session_state.page = "tbm_status"; st.rerun()
+            
     st.markdown("---")
-    # --- 상단 버튼 로직 적용 끝 ---
-        
     st.subheader("🏗️ TBM 점검 작성")
     
     c1, c2 = st.columns(2)
