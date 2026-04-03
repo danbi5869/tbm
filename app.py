@@ -128,7 +128,7 @@ elif st.session_state.page == "tbm_write":
 
     st.write("**✅ 공통 안전점검 사항**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
-    common_list = [{"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False}, {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "위험구역설정", "점검내용": "출입통제, 안전표지 설치", "확인": False}, {"작업명": "전원차단확인", "점검내용": "Lock-out/Tage-out 적용 확인", "비상대응확인": False}, {"작업명": "소화기, 비상연락망 확인", "점검내용": "소화기/연락망 확인", "확인": False}]
+    common_list = [{"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False}, {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "위험구역설정", "점검내용": "출입통제, 안전표지 설치", "확인": False}, {"작업명": "전원차단확인", "점검내용": "Lock-out/Tage-out 적용 확인", "확인": False}, {"작업명": "비상대응확인", "점검내용": "소화기/비상연락망 확인", "확인": False}]
     
     # width='stretch'로 버전 에러 해결
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
