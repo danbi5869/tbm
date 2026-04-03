@@ -7,7 +7,6 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 import time
 from datetime import timezone, timedelta
-import streamlit.components.v1 as components
 
 # [1. 앱 기본 설정]
 try:
@@ -65,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 디자인 설정]
+# [5. 스타일 설정]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -102,23 +101,25 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ [완전 통합] 입력창 하나로 끝내는 HTML5 Datalist 구현
-        # 브라우저 기능을 활용해 입력창 하나에서 추천과 자유 타이핑을 모두 지원합니다.
+        # ✅ 경고 메시지를 없앤 새로운 HTML 삽입 방식 (st.html 사용)
         names = team_data[selected_team]
         datalist_options = "".join([f'<option value="{name}">' for name in names])
         
-        # HTML 코드를 삽입하여 보이지 않는 추천 리스트를 만듭니다.
-        components.html(f"""
+        # datalist와 제어 스크립트를 st.html로 삽입 (st.components.v1.html 대체)
+        st.html(f"""
             <datalist id="team_names">
                 {datalist_options}
             </datalist>
             <script>
-                var input = window.parent.document.querySelectorAll('input[aria-label="성함 입력"]')[0];
-                if (input) {{
-                    input.setAttribute('list', 'team_names');
+                // 성함 입력창을 찾아 datalist를 연결합니다.
+                var inputs = window.parent.document.querySelectorAll('input');
+                for (var i = 0; i < inputs.length; i++) {{
+                    if (inputs[i].placeholder === "성함을 입력하세요") {{
+                        inputs[i].setAttribute('list', 'team_names');
+                    }}
                 }}
             </script>
-        """, height=0)
+        """)
         
         final_name = st.text_input("성함 입력", placeholder="성함을 입력하세요", key="name_input").strip()
 
@@ -129,7 +130,6 @@ elif st.session_state.page == "tbm_write":
     common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
-    # 작업별 추가 점검 (선택 시에만 노출)
     if selected_job and selected_job not in ["", "공통작업"]:
         st.write(f"**⚠️ {selected_job} 추가 점검**")
         df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
@@ -151,7 +151,6 @@ elif st.session_state.page == "tbm_write":
                     st.success(f"🎉 {final_name}님 저장 완료!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
                 except Exception as e: st.error(f"저장 실패: {e}")
 
-# [이후 관리자/현황 페이지 생략 - 기존과 동일]
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"
