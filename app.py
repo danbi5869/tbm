@@ -130,8 +130,11 @@ if sheet:
     with tab2:
         st.subheader("📊 점검 현황 조회")
         
-        # ✅ 날짜 선택 기능 추가
-        search_date = st.date_input("조회할 날짜를 선택하세요", datetime.date.today())
+        # 1. 날짜 및 이름 조회 필터 영역
+        col_date, col_name = st.columns(2)
+        with col_date:
+            search_date = st.date_input("📅 날짜 선택", datetime.date.today())
+        
         search_date_str = search_date.isoformat()
         
         try:
@@ -140,22 +143,36 @@ if sheet:
                 header = [h.strip() for h in raw_data[0]]
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
                 
+                # 열 이름 통일 (서명->서명확인, 성함->이름)
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
                 if '성함' in all_df.columns:
                     all_df = all_df.rename(columns={'성함': '이름'})
 
                 if '날짜' in all_df.columns:
-                    # ✅ 선택한 날짜로 필터링
-                    filtered_df = all_df[all_df['날짜'] == search_date_str]
+                    # 해당 날짜 데이터 먼저 필터링
+                    date_filtered_df = all_df[all_df['날짜'] == search_date_str]
                     
-                    st.metric(f"{search_date_str} 완료 인원", f"{len(filtered_df)}명")
-                    
-                    if not filtered_df.empty:
+                    # 2. 선택한 날짜에 데이터가 있는 경우에만 이름 필터 활성화
+                    if not date_filtered_df.empty:
+                        names_in_date = sorted(date_filtered_df['이름'].unique().tolist())
+                        with col_name:
+                            selected_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names_in_date)
+                        
+                        # 이름 필터 적용
+                        if selected_name != "전체 보기":
+                            final_df = date_filtered_df[date_filtered_df['이름'] == selected_name]
+                        else:
+                            final_df = date_filtered_df
+                        
+                        st.metric(f"{search_date_str} 점검 인원", f"{len(final_df)}명")
+                        
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
-                        available_cols = [c for c in display_cols if c in filtered_df.columns]
-                        st.dataframe(filtered_df[available_cols], use_container_width=True, hide_index=True)
+                        available_cols = [c for c in display_cols if c in final_df.columns]
+                        st.dataframe(final_df[available_cols], use_container_width=True, hide_index=True)
                     else:
+                        with col_name:
+                            st.selectbox("👤 이름별 조회", ["기록 없음"], disabled=True)
                         st.info(f"{search_date_str}에 완료된 점검 기록이 없습니다.")
                 else:
                     st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
