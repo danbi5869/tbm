@@ -60,7 +60,6 @@ specific_checks = {
     "시험/가동": [{"항목": "신호", "점검내용": "운전/정지 신호수 배치", "확인": False}, {"항목": "비상", "점검내용": "E-Stop 버튼 확인", "확인": False}]
 }
 
-# ✅ '공통작업' 항목 추가
 job_options = ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
 
 # [스타일 및 모바일 최적화]
@@ -123,13 +122,12 @@ if sheet:
         df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="ed_common", column_config=col_config)
 
         df_specific = None
-        # ✅ '공통작업'이 아니고 specific_checks에 등록된 작업일 때만 추가 점검표 표시
         if selected_job and selected_job != "공통작업" and selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검</div>', unsafe_allow_html=True)
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
             df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="ed_spec", column_config=spec_config)
 
-        remark = st.text_area("✍️ 특이사항 (비고)", placeholder="필요시 입력해 주세요.", key="remark_input")
+        # ✅ 비고(특이사항) 입력칸 제거 완료
         
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
@@ -145,8 +143,8 @@ if sheet:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
                         now = datetime.datetime.now()
-                        # 저장 순서: [날짜, 소속, 이름, 작업명, 상태, 시간, 서명여부, 비고]
-                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", remark])
+                        # 비고란(remark)은 빈 문자열("")로 저장하여 시트 컬럼 구조 유지
+                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
                         st.balloons()
                         time.sleep(2)
