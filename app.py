@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
+import time
 
 # 1. 앱 설정
 icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=15"
@@ -34,6 +35,7 @@ st.markdown("""
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
+            font-size: 1.2em;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -70,6 +72,10 @@ df_init = pd.DataFrame([
 sheet = get_sheet()
 
 if sheet:
+    # 세션 상태를 이용해 탭 위치 제어
+    if "current_tab" not in st.session_state:
+        st.session_state.current_tab = 0
+
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
@@ -77,9 +83,9 @@ if sheet:
         
         c1, c2 = st.columns(2)
         team_list = ["운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
-        with c1: selected_team = st.selectbox("소속 부서", team_list, key="dept_sel")
-        with c2: input_name = st.text_input("성함", key="name_input")
-        job_name = st.text_input("금일 작업명", key="job_input")
+        selected_team = st.selectbox("소속 부서", team_list, key="dept_sel")
+        input_name = st.text_input("성함", key="name_input", placeholder="성함을 입력하세요")
+        job_name = st.text_input("금일 작업명", key="job_input", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
         
@@ -108,22 +114,26 @@ if sheet:
             height=150, width=330, drawing_mode="freedraw", key="canvas_main"
         )
 
+        # 저장 버튼 및 알림 로직
         if st.button("점검 완료 및 저장"):
             if not input_name or not job_name:
-                st.warning("⚠️ 성함과 작업명을 입력해 주세요.")
+                st.warning("⚠️ 성함과 작업명을 먼저 입력해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
-                st.warning("⚠️ 서명이 누락되었습니다.")
+                st.warning("⚠️ 하단 서명란에 서명을 해주세요.")
             else:
-                now = datetime.datetime.now()
-                # 시트에 저장되는 순서 (날짜, 소속, 성함, 작업명, 상태, 시간, 비고, 서명)
-                new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "✅ 완료"]
-                try:
-                    sheet.append_row(new_row)
-                    st.success(f"🎉 {input_name}님, 저장 완료!")
-                    st.balloons()
-                    st.rerun() 
-                except Exception as e:
-                    st.error(f"저장 실패: {e}")
+                with st.spinner('데이터를 저장 중입니다...'):
+                    now = datetime.datetime.now()
+                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "✅ 완료"]
+                    try:
+                        sheet.append_row(new_row)
+                        # ✅ 명확한 완료 문구 표시
+                        st.success(f"✅ 점검 완료되었습니다! ({input_name}님)")
+                        st.balloons()
+                        # 잠시 대기 후 화면 갱신
+                        time.sleep(2)
+                        st.rerun() 
+                    except Exception as e:
+                        st.error(f"저장 중 오류가 발생했습니다: {e}")
 
     with tab2:
         st.subheader("📊 금일 점검 현황")
@@ -134,13 +144,13 @@ if sheet:
             if len(raw_data) > 1:
                 header = [h.strip() for h in raw_data[0]]
                 valid_cols = [i for i, h in enumerate(header) if h != ""]
-                
                 clean_header = [header[i] for i in valid_cols]
-                data_rows = [[row[i] for i in valid_cols] for row in raw_data[1:]]
+                data_rows = [[row[i] for i in valid_cols] for raw_data in raw_data[1:]]
                 
-                all_df = pd.DataFrame(data_rows, columns=clean_header)
+                # 데이터가 없는 경우를 위한 방어 로직
+                all_df = pd.DataFrame(raw_data[1:], columns=header)
+                all_df.columns = [c.strip() for c in all_df.columns]
                 
-                # 시트의 '서명' 열 이름을 '서명확인'으로 변경하여 보여줌
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
 
@@ -149,17 +159,16 @@ if sheet:
                     st.metric("오늘 완료 인원", f"{len(today_df)}명")
                     
                     if not today_df.empty:
-                        # ✅ 요청하신 순서대로 배치 (날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인)
-                        # '이름' 열이 시트에서 '이름'인지 '성함'인지 확인 필요 (현재 코드 저장 시엔 '이름' 위치에 저장됨)
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
-                        available_cols = [c for c in display_cols if c in today_df.columns]
+                        # 열 이름이 '이름' 대신 '성함'으로 저장되었을 경우를 대비
+                        if '이름' not in today_df.columns and '성함' in today_df.columns:
+                            today_df = today_df.rename(columns={'성함': '이름'})
                         
+                        available_cols = [c for c in display_cols if c in today_df.columns]
                         st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
                     else:
-                        st.info("아직 오늘 완료된 점검 기록이 없습니다.")
-                else:
-                    st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
+                        st.info("오늘 점검을 완료한 인원이 아직 없습니다.")
             else:
                 st.warning("저장된 데이터가 없습니다.")
         except Exception as e:
-            st.error(f"데이터 로딩 오류: {e}")
+            st.error(f"현황판 로딩 중 오류: {e}")
