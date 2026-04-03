@@ -36,7 +36,7 @@ team_data = {
     "회전기장": ["박기하", "이성보"], "TM": ["박석희", "오현택", "유상훈"],
     "CM": ["안상복", "김태경"], "대차장": ["임청용", "정호영"],
     "댐퍼/에어스프링": ["정성목", "이태수"], "기초제동1": ["우원진", "연제동", "이창록"],
-    "기초제동2": ["김영일", "정진영", "허재혁"], "운축/축상장": ["김성수", "이성문"],
+    "기초제동2": ["김영일", "정진영", "허재혁"], "윤축/축상장": ["김성수", "이성문"],
     "윤축": ["정승욱", "나용환", "박주현"], "축상": ["박상언", "윤종혁", "방건동", "박준수"],
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 네이비 스타일 디자인]
+# [5. 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -116,7 +116,7 @@ elif st.session_state.page == "tbm_write":
 
     st.write("**✅ 공통 안전점검 사항**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
-    common_list = [{"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False}, {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "위험구역설정", "점검내용": "출입통제, 안전표지 설치", "확인": False}, {"작업명": "전원차단확인", "점검내용": "Lock-out/Tage-out 적용 확인", "확인": False}, {"작업명": "비상대응확인", "점검내용": "소화기/비상연락망 확인", "확인": False}]
+    common_list = [{"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False}, {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "위험구역설정", "점검내용": "출입통제, 안전표지 설치", "확인": False}, {"작업명": "전원차단확인", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상대응확인", "점검내용": "소화기/비상연락망 확인", "확인": False}]
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
@@ -136,25 +136,49 @@ elif st.session_state.page == "tbm_write":
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                    
-                    # [수정 포인트] 성공 메시지를 변경하고 자동 이동(st.rerun)을 삭제했습니다.
                     st.success("✅ 점검 완료했습니다!")
-                    st.balloons() # 완료 축하 효과 추가
+                    st.balloons()
                 except:
                     st.error("구글 시트 저장 실패")
 
+# 📊 현황 확인 페이지 (날짜 + 이름별 검색 기능 추가)
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
+    
     try:
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
+            # 시트 데이터를 데이터프레임으로 변환
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            
+            # 검색 필터 UI
+            col1, col2 = st.columns(2)
+            with col1:
+                s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            with col2:
+                s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
+            
+            # 필터링 로직
+            # 1. 날짜 필터링
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
-            st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
-    except: st.error("데이터 불러오기 실패")
+            
+            # 2. 이름 필터링 (입력값이 있을 때만 실행)
+            if s_name:
+                # '이름' 컬럼이 시트에 있어야 합니다. (원본 로직상 3번째 컬럼이 '성함' 혹은 '이름'으로 저장됨)
+                # 시트의 헤더명에 맞춰 '성함' 혹은 '이름'으로 컬럼명을 확인하세요. 
+                # 여기서는 사용자님의 append_row 순서에 따라 3번째 컬럼을 기준으로 잡습니다.
+                name_col = df_all.columns[2] 
+                df_f = df_f[df_f[name_col].str.contains(s_name, na=False)]
+            
+            if not df_f.empty:
+                st.write(f"🔎 검색 결과: {len(df_f)}건")
+                st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
+            else:
+                st.info("조회된 데이터가 없습니다.")
+    except Exception as e:
+        st.error(f"데이터 불러오기 실패: {e}")
 
 elif st.session_state.page == "tbm_admin":
     if st.button("⬅️ 메인으로 돌아가기"):
