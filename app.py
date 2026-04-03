@@ -24,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 팀 데이터 유지]
+# [3. 팀 데이터 명단]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -63,7 +63,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 🎨 소프트 화이트 & 블루 스타일 디자인]
+# [5. 🎨 스타일 업데이트: 소프트 블루 & 화이트 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #f8fafc; color: #1e293b; }
@@ -80,6 +80,7 @@ st.markdown("""
         }
         .main-header h1 { color: #0369a1 !important; font-size: 1.6rem; font-weight: 800; margin: 0; }
         
+        /* 버튼 스타일 최적화 */
         .stButton>button { 
             width: 100%; border-radius: 16px; height: 4.8rem; 
             font-size: 18px !important; font-weight: 700 !important; 
@@ -96,6 +97,8 @@ st.markdown("""
         div.stButton > button:has(div:contains("돌아가기")) {
             background-color: #f1f5f9 !important; color: #475569 !important; height: 2.8rem; border: none !important; font-size: 14px !important;
         }
+        
+        /* 공지사항 박스 */
         .notice-box { 
             background-color: #f0f9ff; border-left: 6px solid #38bdf8; 
             padding: 20px; border-radius: 12px; margin-bottom: 25px; color: #0c4a6e;
@@ -109,6 +112,7 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 스마트 체크리스트</h1></div>', unsafe_allow_html=True)
     
+    # 📢 [업데이트] 공지사항을 메인 최상단으로 배치
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-box">
@@ -137,13 +141,21 @@ elif st.session_state.page == "tbm_write":
     with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2: 
         final_name = st.text_input("성함 입력", placeholder="성함 입력").strip()
-        # [수정] 명단 확인 캡션(st.caption) 부분을 삭제했습니다.
+        # [수정] 명단 확인 안내 문구(st.caption)를 삭제했습니다.
 
     selected_job = st.selectbox("작업 분류", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
     st.write("**✅ 안전점검 실시**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("상세내용", width=220), "확인": st.column_config.CheckboxColumn("V", width=40)}
-    common_list = [{"작업명": "계획", "점검내용": "역할 분담 및 순서 확인", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용 확인", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상 없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "전원", "점검내용": "전원 차단 및 LOTO 확인", "확인": False}]
+    common_list = [
+        {"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
+        {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False},
+        {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False},
+        {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False},
+        {"작업명": "위험구역설정", "점검내용": "출입통제, 안전표지 설치", "확인": False},
+        {"작업명": "전원차단확인", "점검내용": "LOTO 적용 확인", "확인": False},
+        {"작업명": "비상대응확인", "점검내용": "소화기/비상연락망 확인", "확인": False}
+    ]
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
@@ -158,15 +170,15 @@ elif st.session_state.page == "tbm_write":
         if not final_name or not selected_job or not df_common["확인"].all():
             st.warning("⚠️ 필수 항목과 점검 사항을 모두 확인하세요.")
         else:
-            with st.spinner('시트 저장 중...'):
+            with st.spinner('저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                    st.success("🎉 성공적으로 저장되었습니다!"); time.sleep(1); st.session_state.page = "main"; st.rerun()
+                    st.success("🎉 저장되었습니다!"); time.sleep(1); st.session_state.page = "main"; st.rerun()
                 except: st.error("구글 시트 저장 실패")
 
-# [현황 확인 및 관리자 페이지는 이전과 동일]
+# 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
@@ -180,6 +192,7 @@ elif st.session_state.page == "tbm_status":
             st.dataframe(df_f.iloc[::-1], use_container_width=True, hide_index=True)
     except: st.error("데이터 로드 실패")
 
+# ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
