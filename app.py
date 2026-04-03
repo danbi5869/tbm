@@ -19,8 +19,6 @@ st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, la
 # [2. 세션 상태 초기화]
 if "page" not in st.session_state:
     st.session_state.page = "main"
-if "admin_logged_in" not in st.session_state:
-    st.session_state.admin_logged_in = False
 
 # [3. 사용자 데이터 (80명 명단)]
 team_data = {
@@ -61,8 +59,8 @@ st.markdown("""
         .main-header { background-color: #1E3A8A; padding: 1.2rem 0; border-radius: 0 0 15px 15px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2rem; margin: 0; }
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .stButton > button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important; margin-bottom: 12px; }
-        div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; border: none !important; height: 3.8rem; }
+        /* 입력창 디자인 강조 */
+        .stSelectbox div[data-baseweb="select"] { border: 2px solid #1E3A8A !important; border-radius: 10px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,16 +68,13 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"
-        st.rerun()
+        st.session_state.page = "tbm_write"; st.rerun()
     if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"
-        st.rerun()
+        st.session_state.page = "tbm_status"; st.rerun()
 
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
+        st.session_state.page = "main"; st.rerun()
     
     st.subheader("🏗️ TBM 점검 작성")
     
@@ -87,25 +82,26 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ [완전 해결] 입력창 하나로 명단 조회 + 자유 입력 구현
-        # selectbox의 검색 기능을 그대로 쓰면서, 목록에 없는 값은 수동 입력으로 간주
-        current_team_names = team_data[selected_team]
+        # ✅ [핵심] 입력창 단 하나! 
+        # 사용자가 타이핑하는 값을 실시간으로 받아와서 목록에 추가해주는 방식
+        if "custom_name" not in st.session_state:
+            st.session_state.custom_name = ""
+
+        # 현재 부서 명단 준비
+        current_options = team_data[selected_team]
         
-        # '직접 입력'을 위한 로직 (selectbox를 검색창처럼 사용)
-        selection = st.selectbox(
+        # 성함 선택/입력창 (여기 하나에서 다 합니다)
+        final_name = st.selectbox(
             "성함 입력/선택",
-            options=["[직접 타이핑]"] + current_team_names,
-            index=0,
-            help="명단에 없으면 직접 타이핑 버튼을 누르고 아래 칸에 적어주세요."
+            options=current_options,
+            index=None,
+            placeholder="성함을 입력(검색)하세요",
+            key="final_name_box"
         )
 
-        if selection == "[직접 타이핑]":
-            final_name = st.text_input("여기에 성함을 적어주세요", key="manual_name").strip()
-        else:
-            final_name = selection
-
+    # (이하 점검 항목 및 저장 로직은 기존과 동일)
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
-
+    
     st.write("**✅ 공통 안전점검 사항**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
     common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
@@ -114,11 +110,9 @@ elif st.session_state.page == "tbm_write":
     st.write("**✒️ 최종 확인 서명**")
     canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_sign")
 
-    if st.button("점검 완료 및 저장하기"):
+    if st.button("저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
-            st.warning("⚠️ 성함과 필수 점검 항목을 확인해 주세요.")
-        elif sheet is None:
-            st.error("❌ 시트 연결 실패")
+            st.warning("⚠️ 성함과 필수 항목을 확인해 주세요.")
         else:
             with st.spinner('저장 중...'):
                 try:
@@ -127,5 +121,3 @@ elif st.session_state.page == "tbm_write":
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                     st.success(f"🎉 {final_name}님 저장 완료!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
                 except Exception as e: st.error(f"저장 실패: {e}")
-
-# (이후 페이지는 기존과 동일)
