@@ -15,7 +15,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [디자인: 헤더 스타일]
+# [UI 디자인: 헤더 및 테이블 스타일]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
@@ -25,6 +25,7 @@ st.markdown("""
             font-weight: 900 !important;
             color: #000 !important;
             background-color: #f0f2f6 !important;
+            text-align: center !important;
         }
         .stButton>button {
             width: 100%;
@@ -51,7 +52,7 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정: 공백을 넣어 시각적 중앙 정렬] ---
+# --- [표 제목 설정: 공백으로 중앙 정렬 효과] ---
 h_job = "  작업명  "
 h_content = "         점검내용         "
 h_check = " 확인 "
@@ -69,63 +70,89 @@ df_init = pd.DataFrame([
 sheet = get_sheet()
 
 if sheet:
-    st.subheader("🏗️ TBM 안전 점검 일지")
-    
-    c1, c2 = st.columns(2)
-    # 팀 명단은 요약된 정보 기반으로 자동 세팅
-    team_list = ["운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
-    with c1: selected_team = st.selectbox("소속 부서", team_list)
-    with c2: input_name = st.text_input("성함")
-    job_name = st.text_input("금일 작업명")
+    tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
-    st.markdown("---")
-    
-    edited_df = st.data_editor(
-        df_init,
-        column_config={
-            h_job: st.column_config.TextColumn(h_job, width="medium", disabled=True),
-            h_content: st.column_config.TextColumn(h_content, width="large", disabled=True),
-            h_check: st.column_config.CheckboxColumn(h_check, width="small", default=False, alignment="center"),
-        },
-        hide_index=True,
-        use_container_width=True,
-        num_rows="fixed"
-    )
+    with tab1:
+        st.subheader("🏗️ TBM 안전 점검 일지")
+        
+        c1, c2 = st.columns(2)
+        team_list = ["운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
+        with c1: selected_team = st.selectbox("소속 부서", team_list, key="dept_sel")
+        with c2: input_name = st.text_input("성함", key="name_input")
+        job_name = st.text_input("금일 작업명", key="job_input")
 
-    st.markdown("---")
-    
-    # --- [해결 포인트: 공백 제거 후 체크 여부 확인] ---
-    all_checked = edited_df[h_check].all() 
-    status = "정상" if all_checked else "조치 필요"
-    remark = st.text_area("특이사항 (비고)")
+        st.markdown("---")
+        
+        edited_df = st.data_editor(
+            df_init,
+            column_config={
+                h_job: st.column_config.TextColumn(h_job, width="medium", disabled=True),
+                h_content: st.column_config.TextColumn(h_content, width="large", disabled=True),
+                h_check: st.column_config.CheckboxColumn(h_check, width="small", default=False, alignment="center"),
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            key="editor"
+        )
 
-    st.write("✒️ **서명**")
-    canvas_result = st_canvas(
-        stroke_width=3, stroke_color="#000000", background_color="#f0f2f6",
-        height=150, width=330, drawing_mode="freedraw", key="canvas_main"
-    )
+        st.markdown("---")
+        
+        all_checked = edited_df[h_check].all() 
+        status = "정상" if all_checked else "조치 필요"
+        remark = st.text_area("특이사항 (비고)", key="remark_input")
 
-    if st.button("점검 완료 및 저장"):
-        if not input_name or not job_name:
-            st.warning("⚠️ 성함과 작업명을 입력해 주세요.")
-        elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
-            st.warning("⚠️ 서명이 누락되었습니다.")
-        else:
-            now = datetime.datetime.now()
-            # 저장할 데이터 한 줄 만들기
-            new_row = [
-                now.strftime('%Y-%m-%d'), 
-                selected_team, 
-                input_name, 
-                job_name, 
-                status, 
-                now.strftime('%H:%M:%S'), 
-                remark, 
-                "서명완료"
-            ]
-            try:
-                sheet.append_row(new_row)
-                st.success("🎉 구글 시트에 안전하게 저장되었습니다!")
-                st.balloons()
-            except Exception as e:
-                st.error(f"저장 실패: {e}")
+        st.write("✒️ **서명**")
+        canvas_result = st_canvas(
+            stroke_width=3, stroke_color="#000000", background_color="#f0f2f6",
+            height=150, width=330, drawing_mode="freedraw", key="canvas_main"
+        )
+
+        if st.button("점검 완료 및 저장"):
+            if not input_name or not job_name:
+                st.warning("⚠️ 성함과 작업명을 입력해 주세요.")
+            elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
+                st.warning("⚠️ 서명이 누락되었습니다.")
+            else:
+                now = datetime.datetime.now()
+                new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "서명완료"]
+                try:
+                    sheet.append_row(new_row)
+                    st.success(f"🎉 {input_name}님, 저장 완료!")
+                    st.balloons()
+                    st.rerun() # 저장 후 현황판 업데이트를 위해 새로고침
+                except Exception as e:
+                    st.error(f"저장 실패: {e}")
+
+    with tab2:
+        st.subheader("📊 금일 점검 현황")
+        today_str = datetime.date.today().isoformat()
+        st.write(f"📅 기준일: {today_str}")
+
+        try:
+            records = sheet.get_all_records()
+            if records:
+                all_df = pd.DataFrame(records)
+                # 컬럼명 공백 제거 (안전용)
+                all_df.columns = [col.strip() for col in all_df.columns]
+                
+                # 오늘 날짜 데이터만 필터링 (날짜 컬럼 기준)
+                if '날짜' in all_df.columns:
+                    today_df = all_df[all_df['날짜'] == today_str]
+                    
+                    # 요약 지표
+                    st.metric("오늘 완료 인원", f"{len(today_df)}명")
+                    
+                    if not today_df.empty:
+                        # 필요한 열만 예쁘게 출력
+                        display_cols = ['시간', '소속', '이름', '작업명', '상태', '비고']
+                        available_cols = [c for c in display_cols if c in today_df.columns]
+                        st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
+                    else:
+                        st.info("아직 오늘 완료된 점검 기록이 없습니다.")
+                else:
+                    st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
+            else:
+                st.warning("데이터가 비어 있습니다.")
+        except Exception as e:
+            st.error(f"데이터 로딩 오류: {e}")
