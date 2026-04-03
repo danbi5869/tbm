@@ -51,6 +51,7 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
+# 작업별 추가 항목
 specific_checks = {
     "분해작업": [{"항목": "분해안전", "점검내용": "부품 낙하 방지 조치 완료", "확인": False}, {"항목": "유압/잔압", "점검내용": "시스템 내 잔압 제거 확인", "확인": False}],
     "중량물취급": [{"항목": "줄걸이", "점검내용": "슬링벨트 및 샤클 상태 점검", "확인": False}, {"항목": "반경통제", "점검내용": "인양물 하부 출입통제 확인", "확인": False}],
@@ -62,7 +63,7 @@ specific_checks = {
 
 job_options = ["", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
 
-# ✅ [핵심 수정] 표의 첫 행(헤더)을 강제로 가운데 정렬하는 CSS
+# ✅ CSS 수정: 헤더(첫 행)만 가운데 정렬, 본문은 필요한 곳만 정렬
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
@@ -70,18 +71,10 @@ st.markdown("""
         .stButton>button { width: 100%; border-radius: 12px; height: 3.8em; background-color: #d32f2f; color: white; font-weight: bold; }
         .section-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; margin-top: 20px; }
         
-        /* 표 헤더(첫 행) 가운데 정렬 CSS */
-        div[data-testid="stTable"] th {
-            text-align: center !important;
-            background-color: #f8f9fa;
-        }
+        /* 표 헤더(첫 행)는 무조건 가운데 정렬 */
         div[data-testid="stDataEditor"] th {
             text-align: center !important;
-        }
-        /* 체크박스 열 등 특정 열 헤더도 가운데로 */
-        .st-ae {
-            display: flex;
-            justify-content: center;
+            font-weight: bold !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -117,7 +110,7 @@ if sheet:
 
         st.markdown("---")
         
-        # ✅ [표 1] 공통 안전점검 사항
+        # ✅ [표 1] 공통 점검 - 개별 컬럼 정렬 설정
         st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
         common_list = [
             {"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
@@ -129,20 +122,20 @@ if sheet:
             {"작업명": "비상대응", "점검내용": "소화기, 비상연락망 확인", "확인": False}
         ]
         
-        # column_config를 통해 헤더의 제목을 다시 한 번 정의 (CSS와 연동)
+        # 💡 정렬의 핵심: column_config 사용
         df_common = st.data_editor(
             pd.DataFrame(common_list), 
             hide_index=True, 
             use_container_width=True, 
             key="common_editor",
             column_config={
-                "작업명": st.column_config.TextColumn("작업명"),
-                "점검내용": st.column_config.TextColumn("점검내용"),
-                "확인": st.column_config.CheckboxColumn("확인")
+                "작업명": st.column_config.TextColumn("작업명", width="small"), # 기본 왼쪽(가운데 정렬은 CSS가 처리)
+                "점검내용": st.column_config.TextColumn("점검내용", width="large"), # 긴 내용은 왼쪽 정렬이 국룰
+                "확인": st.column_config.CheckboxColumn("확인", width="small") # 체크박스는 중앙 정렬
             }
         )
 
-        # ✅ [표 2] 추가 점검항목
+        # ✅ [표 2] 작업별 추가 점검 사항
         df_specific = None
         if selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검 사항</div>', unsafe_allow_html=True)
@@ -152,9 +145,9 @@ if sheet:
                 use_container_width=True, 
                 key="specific_editor",
                 column_config={
-                    "항목": st.column_config.TextColumn("항목"),
-                    "점검내용": st.column_config.TextColumn("점검내용"),
-                    "확인": st.column_config.CheckboxColumn("확인")
+                    "항목": st.column_config.TextColumn("항목", width="small"),
+                    "점검내용": st.column_config.TextColumn("점검내용", width="large"),
+                    "확인": st.column_config.CheckboxColumn("확인", width="small")
                 }
             )
 
