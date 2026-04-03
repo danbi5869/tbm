@@ -163,4 +163,26 @@ if sheet:
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
                 df_all = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
-                df
+                df_f = df_all[df_all.iloc[:, 0] == s_date.isoformat()]
+                if s_name: df_f = df_f[df_f.iloc[:, 2].str.contains(s_name, na=False)]
+                st.dataframe(df_f, use_container_width=True, hide_index=True)
+            else: st.info("기록된 점검 데이터가 없습니다.")
+        except: st.error("데이터 로딩 중 오류가 발생했습니다.")
+
+    # --- TAB 3: 관리자 설정 (복구 완료) ---
+    with tab3:
+        st.subheader("⚙️ 관리자 설정")
+        if not st.session_state.admin_logged_in:
+            admin_pw = st.text_input("관리자 비밀번호", type="password")
+            if st.button("로그인"):
+                if admin_pw == "admin@123":
+                    st.session_state.admin_logged_in = True; st.rerun()
+                else: st.error("비밀번호가 일치하지 않습니다.")
+        else:
+            st.success("🔓 관리자 모드 활성화")
+            new_notice = st.text_area("📢 메인 공지사항 수정", st.session_state.safety_notice, height=150)
+            if st.button("지시사항 저장"):
+                st.session_state.safety_notice = new_notice
+                st.success("공지사항이 업데이트되었습니다!"); time.sleep(1); st.rerun()
+            if st.button("로그아웃"):
+                st.session_state.admin_logged_in = False; st.rerun()
