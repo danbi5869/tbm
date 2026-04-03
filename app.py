@@ -16,24 +16,24 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [UI 디자인: 헤더 및 본문 중앙 정렬 강화]
+# [UI 디자인: 헤더(제목)만 가운데 정렬 및 강조]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
         
-        /* 표 헤더 스타일: 배경색, 진한 글씨, 가운데 정렬 */
+        /* ✅ 표의 맨 윗줄(헤더)만 가운데 정렬하고 글씨를 진하게 만듭니다 */
         div[data-testid="stDataFrame"] th {
             background-color: #f0f2f6 !important;
             font-weight: 900 !important;
             color: #000 !important;
-            text-align: center !important;
+            text-align: center !important; /* 헤더만 가운데 정렬 */
         }
 
-        /* 표 본문 셀 중앙 정렬 보조 */
+        /* 본문 셀은 기본 정렬(왼쪽)을 유지하도록 설정 (필요시) */
         div[data-testid="stDataFrame"] td {
-            text-align: center !important;
+            vertical-align: middle !important;
         }
         
         .stButton>button {
@@ -89,36 +89,20 @@ if sheet:
         job_name = st.text_input("금일 작업명", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
-        st.write("✅ **점검 항목 확인 (가운데 확인 칸을 클릭하세요)**")
+        st.write("✅ **점검 항목 확인**")
 
-        # --- [업데이트: 모든 열 alignment="center" 적용] ---
+        # --- [업데이트: 본문 정렬은 유지하고 헤더만 CSS로 조정] ---
         edited_df = st.data_editor(
             df_init,
             column_config={
-                "작업명": st.column_config.TextColumn(
-                    "작업명", 
-                    width="medium", 
-                    disabled=True,
-                    alignment="center" # 가운데 정렬
-                ),
-                "점검내용": st.column_config.TextColumn(
-                    "점검내용", 
-                    width="large", 
-                    disabled=True,
-                    alignment="center" # 가운데 정렬
-                ),
-                "확인": st.column_config.CheckboxColumn(
-                    "확인", 
-                    width="small", 
-                    default=False,
-                    alignment="center" # 체크박스 가운데 정렬
-                ),
+                "작업명": st.column_config.TextColumn("작업명", width="medium", disabled=True),
+                "점검내용": st.column_config.TextColumn("점검내용", width="large", disabled=True),
+                "확인": st.column_config.CheckboxColumn("확인", width="small", default=False, alignment="center"), # 체크박스는 중앙이 사용하기 편합니다
             },
             hide_index=True,
             use_container_width=True,
             num_rows="fixed"
         )
-        # --------------------------------------------
 
         st.markdown("---")
         
@@ -142,7 +126,7 @@ if sheet:
                 new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
-                    st.success("🎉 저장 완료! 안전하게 작업하세요.")
+                    st.success("🎉 저장 완료! 안전한 하루 되세요.")
                     st.balloons()
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
