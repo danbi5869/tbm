@@ -22,7 +22,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [전체 팀 명단 데이터] - 검색 추천용
+# [데이터 세팅]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -50,6 +50,9 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"],
     "탐상": ["박윤찬", "이동호"]
 }
+
+# ✅ 요청하신 작업명 리스트
+job_options = ["", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
 
 # [UI 디자인 - 톤다운]
 st.markdown("""
@@ -116,18 +119,23 @@ if sheet:
         with c1:
             selected_team = st.selectbox("소속 부서", list(team_data.keys()), key="dept_sel")
         with c2:
-            # ✅ [핵심 수정] selectbox를 쓰되, 첫 번째 옵션을 빈 값으로 두어 입력 전엔 안 보이게 함
-            # 타이핑을 하면 해당 글자가 포함된 이름만 리스트에 남습니다.
             member_options = [""] + team_data[selected_team]
             input_name = st.selectbox(
-                "성함 입력/선택", 
+                "성함 선택", 
                 member_options, 
                 index=0, 
-                format_func=lambda x: "성함을 입력하세요" if x == "" else x,
+                format_func=lambda x: "성함을 입력/선택하세요" if x == "" else x,
                 key="name_sel"
             )
         
-        job_name = st.text_input("금일 작업명", key="job_input", placeholder="작업명을 입력하세요")
+        # ✅ [수정] 금일 작업명도 선택형(selectbox)으로 변경
+        selected_job = st.selectbox(
+            "금일 작업명", 
+            job_options, 
+            index=0, 
+            format_func=lambda x: "작업명을 선택하세요" if x == "" else x,
+            key="job_sel"
+        )
 
         st.markdown("---")
         edited_df = st.data_editor(df_init, hide_index=True, use_container_width=True, key="editor")
@@ -136,27 +144,26 @@ if sheet:
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
-            if not input_name or not job_name:
-                st.warning("⚠️ 성함(선택)과 작업명을 입력해 주세요.")
+            if not input_name or not selected_job:
+                st.warning("⚠️ 성함과 작업명을 모두 선택해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해 주세요.")
             else:
                 with st.spinner('데이터 저장 중...'):
                     now = datetime.datetime.now()
-                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, "정상" if edited_df[h_check].all() else "조치 필요", now.strftime('%H:%M:%S'), "✅ 완료"]
+                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상" if edited_df[h_check].all() else "조치 필요", now.strftime('%H:%M:%S'), "✅ 완료"]
                     sheet.append_row(new_row)
                     st.success(f"🎊 저장 완료! ({input_name}님)")
                     st.balloons()
                     time.sleep(2); st.rerun()
 
-    # --- [TAB 2: 전체 점검 현황 - 검색 기반] ---
+    # --- [TAB 2: 전체 점검 현황] ---
     with tab2:
         st.subheader("📊 점검 현황 검색")
         c_date, c_search = st.columns(2)
         with c_date: 
             s_date = st.date_input("📅 날짜 선택", datetime.date.today())
         with c_search:
-            # 여기도 마찬가지로 직접 입력하면 결과가 나오도록 구성
             name_query = st.text_input("👤 이름 검색", placeholder="성함 입력 (예: 노)")
             
         s_date_str = s_date.isoformat()
@@ -173,10 +180,10 @@ if sheet:
                         st.metric(f"'{name_query}' 검색 결과", f"{len(df_filtered)}건")
                         st.dataframe(df_filtered[['날짜', '시간', '소속', '이름', '작업명', '상태']], use_container_width=True, hide_index=True)
                     else:
-                        st.info("기록이 없습니다.")
+                        st.info("조회된 기록이 없습니다.")
             except: st.error("로딩 오류")
         else:
-            st.info("💡 상단 검색창에 성함을 입력해 주세요.")
+            st.info("💡 조회하고자 하는 성함을 입력해 주세요.")
 
     # --- [TAB 3: 관리자 설정] ---
     with tab3:
