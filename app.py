@@ -24,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 기존 데이터 유지] (80명 명단)
+# [3. 팀 데이터 유지]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -63,25 +63,23 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. ✨ 소프트 미니멀 스타일 CSS 디자인]
+# [5. 🎨 소프트 화이트 & 블루 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #f8fafc; color: #1e293b; }
         header { visibility: hidden !important; }
         .block-container { 
-            background-color: #ffffff; 
-            padding: 2rem !important; 
-            border-radius: 25px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+            background-color: #ffffff; padding: 2rem !important; 
+            border-radius: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
             margin-top: 1.5rem;
         }
         .main-header { 
             background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-            padding: 1.5rem; border-radius: 20px; 
-            margin-bottom: 1.5rem; text-align: center;
-            border: 1px solid #bae6fd;
+            padding: 1.5rem; border-radius: 20px; text-align: center;
+            border: 1px solid #bae6fd; margin-bottom: 1.5rem;
         }
         .main-header h1 { color: #0369a1 !important; font-size: 1.6rem; font-weight: 800; margin: 0; }
+        
         .stButton>button { 
             width: 100%; border-radius: 16px; height: 4.8rem; 
             font-size: 18px !important; font-weight: 700 !important; 
@@ -101,10 +99,6 @@ st.markdown("""
         .notice-box { 
             background-color: #f0f9ff; border-left: 6px solid #38bdf8; 
             padding: 20px; border-radius: 12px; margin-bottom: 25px; color: #0c4a6e;
-            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.05);
-        }
-        .stTextInput>div>div>input, .stSelectbox>div>div>div {
-            border-radius: 12px !important; border: 1px solid #e2e8f0 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -115,7 +109,7 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 스마트 체크리스트</h1></div>', unsafe_allow_html=True)
     
-    # [핵심 변경 사항] 지시사항을 메인 최상단으로 배치
+    # 📢 공지사항을 메인 최상단으로 배치
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-box">
@@ -150,24 +144,24 @@ elif st.session_state.page == "tbm_write":
 
     selected_job = st.selectbox("작업 분류", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
-    st.write("**✅ 공통 안전점검**")
+    st.write("**✅ 안전점검 실시**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("상세내용", width=220), "확인": st.column_config.CheckboxColumn("V", width=40)}
     common_list = [{"작업명": "계획", "점검내용": "역할 분담 및 순서 확인", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용 확인", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상 없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "전원", "점검내용": "전원 차단 및 LOTO 확인", "확인": False}]
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
     if selected_job and selected_job not in ["", "공통작업"]:
-        st.write(f"**⚠️ {selected_job} 추가 사항**")
+        st.write(f"**⚠️ {selected_job} 추가 점검**")
         st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
-    st.write("**✒️ 최종 서명**")
+    st.write("**✒️ 본인 서명**")
     canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8fafc", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
 
     if st.button("💾 점검 완료 및 저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
-            st.warning("⚠️ 필수 항목과 점검 사항을 확인하세요.")
+            st.warning("⚠️ 필수 항목과 점검 사항을 모두 확인하세요.")
         else:
-            with st.spinner('저장 중...'):
+            with st.spinner('시트 저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
@@ -184,7 +178,7 @@ elif st.session_state.page == "tbm_status":
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            s_date = st.date_input("날짜 조회", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            s_date = st.date_input("조회 날짜", datetime.datetime.now(timezone(timedelta(hours=9))).date())
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
             st.dataframe(df_f.iloc[::-1], use_container_width=True, hide_index=True)
     except: st.error("데이터 로드 실패")
@@ -198,6 +192,6 @@ elif st.session_state.page == "tbm_admin":
         if st.button("로그인"):
             if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
     else:
-        new_notice = st.text_area("📢 공지사항 수정 (메인 화면에 반영됩니다)", st.session_state.safety_notice, height=150)
-        if st.button("업데이트"): st.session_state.safety_notice = new_notice; st.success("수정 완료")
+        new_notice = st.text_area("📢 메인 공지사항 수정", st.session_state.safety_notice, height=150)
+        if st.button("업데이트 반영"): st.session_state.safety_notice = new_notice; st.success("수정되었습니다.")
         if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
