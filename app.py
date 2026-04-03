@@ -45,13 +45,6 @@ st.markdown("""
             font-weight: bold;
             font-size: 1.1em;
         }
-        /* 관리자 로그인 박스 스타일 */
-        .admin-login-box {
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -84,7 +77,6 @@ df_init = pd.DataFrame([
 sheet = get_sheet()
 
 if sheet:
-    # ✅ 탭 3개 구성: 점검하기, 현황 조회, 관리자 설정
     tab1, tab2, tab3 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황", "⚙️ 관리자 설정"])
 
     # --- [TAB 1: TBM 점검하기] ---
@@ -158,25 +150,25 @@ if sheet:
             st.info("관리자 인증이 필요합니다.")
             admin_pw = st.text_input("관리자 비밀번호를 입력하세요", type="password")
             if st.button("인증하기"):
-                if admin_pw == "1234": # 👈 비밀번호 변경 가능
+                # ✅ 비밀번호가 admin@123 으로 설정되었습니다.
+                if admin_pw == "admin@123":
                     st.session_state.admin_logged_in = True
-                    st.success("인증 성공!")
+                    st.success("인증 성공! 관리자 메뉴를 활성화합니다.")
                     st.rerun()
                 else:
                     st.error("비밀번호가 일치하지 않습니다.")
         else:
             st.success("🔓 관리자 모드 활성화 중")
-            col_admin1, col_admin2 = st.columns([2, 1])
-            with col_admin1:
-                updated_notice = st.text_area("📢 안전 지시사항 내용 수정", st.session_state.safety_notice, height=200)
-                if st.button("공지사항 즉시 업데이트"):
+            updated_notice = st.text_area("📢 안전 지시사항 내용 수정", st.session_state.safety_notice, height=200)
+            
+            c_admin1, c_admin2 = st.columns(2)
+            with c_admin1:
+                if st.button("공지사항 업데이트"):
                     st.session_state.safety_notice = updated_notice
-                    st.success("안전 지시사항이 변경되었습니다.")
+                    st.success("지시사항이 변경되었습니다.")
                     time.sleep(1)
                     st.rerun()
-            
-            with col_admin2:
-                st.write("---")
-                if st.button("로그아웃", use_container_width=True):
+            with c_admin2:
+                if st.button("관리자 로그아웃"):
                     st.session_state.admin_logged_in = False
                     st.rerun()
