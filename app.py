@@ -37,7 +37,7 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
 
-# 작업별 추가 점검 항목 복구
+# ✅ [복구] 작업별 상세 점검 항목
 specific_checks = {
     "분해작업": [{"항목": "분해", "점검내용": "부품 낙하 방지 조치", "확인": False}, {"항목": "잔압", "점검내용": "시스템 내 잔압 제거", "확인": False}],
     "중량물취급": [{"항목": "줄걸이", "점검내용": "슬링벨트 상태 점검", "확인": False}, {"항목": "통제", "점검내용": "하부 출입통제 확인", "확인": False}],
@@ -60,7 +60,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 설정]
+# [5. 디자인 설정]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -81,46 +81,51 @@ elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
     
-    st.subheader("📝 점검표 작성")
+    st.subheader("🏗️ TBM 점검 작성")
     
     c1, c2 = st.columns(2)
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ [해결책] 타이핑 입력 완벽 지원 로직
-        # 1. 사용자가 타이핑한 값을 받기 위해 selectbox 대신 전용 위젯 조합
-        if "temp_name" not in st.session_state: st.session_state.temp_name = ""
+        # ✅ [통합] 성함 입력 및 선택 (하나로 합침)
+        options = ["명단에 없음(직접입력)"] + team_data[selected_team]
+        choice = st.selectbox("성함 선택", options, index=0)
         
-        # 목록에 '직접 입력' 항목을 추가하여 타이핑 유도
-        options = ["명단에서 선택"] + team_data[selected_team]
-        choice = st.selectbox("성함 선택/검색", options, index=0)
-        
-        if choice == "명단에서 선택":
-            final_name = st.text_input("성함 직접 입력", placeholder="명단에 없으면 여기에 타이핑", key="manual_name").strip()
+        if choice == "명단에 없음(직접입력)":
+            final_name = st.text_input("성함 직접 입력", key="manual_name").strip()
         else:
             final_name = choice
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
     
-    # ✅ 공통 안전점검 사항 복구
+    # ✅ [복구] 공통 안전점검 사항 7가지
     st.write("**✅ 공통 안전점검 사항**")
-    col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
-    common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
+    col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
+    common_list = [
+        {"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False},
+        {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False},
+        {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False},
+        {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False},
+        {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False},
+        {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False},
+        {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}
+    ]
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
-    # ✅ 추가 점검 사항 복구
+    # ✅ [복구] 작업별 추가 점검 사항
     if selected_job and selected_job not in ["", "공통작업"]:
         st.write(f"**⚠️ {selected_job} 추가 점검**")
         df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
+    st.caption("아래 회색 영역에 서명해 주세요.")
     canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_sign")
 
-    if st.button("🚀 점검 완료 및 저장"):
+    if st.button("💾 점검 완료 및 저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
             st.warning("⚠️ 성함과 모든 필수 점검 항목을 확인해 주세요.")
         else:
-            with st.spinner('저장 중...'):
+            with st.spinner('구글 시트에 저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
@@ -138,4 +143,5 @@ elif st.session_state.page == "tbm_status":
             if len(raw_data) > 1:
                 df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
                 st.dataframe(df_all.iloc[::-1], use_container_width=True, hide_index=True)
-        except: st.error("데이터 조회 실패")
+            else: st.info("기록된 데이터가 없습니다.")
+        except: st.error("데이터 조회 중 오류가 발생했습니다.")
