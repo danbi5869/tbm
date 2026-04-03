@@ -16,54 +16,28 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# --- [고급 UI 디자인: 격자 테두리 및 중앙 정렬 CSS] ---
-st.markdown(f"""
+# [UI 디자인: 헤더 및 버튼 스타일]
+st.markdown("""
     <style>
-        header {{visibility: hidden !important;}}
-        #MainMenu {{visibility: hidden !important;}}
-        footer {{visibility: hidden !important;}}
-        .block-container {{ padding-top: 1rem !important; }}
-        
-        /* 테이블 스타일: 테두리 합치기 및 중앙 정렬 */
-        .tbm-grid {{
-            width: 100%;
-            border-collapse: collapse; /* 테두리 겹치기 */
-            margin-bottom: 20px;
-        }}
-        
-        .tbm-grid th, .tbm-grid td {{
-            border: 1px solid #444444; /* 진한 테두리 */
-            padding: 12px 8px;
-            text-align: center; /* 가로 중앙 */
-            vertical-align: middle; /* 세로 중앙 */
-            font-size: 0.85rem;
-        }}
-        
-        .tbm-grid th {{
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }}
-
-        /* 체크박스 정렬용 컨테이너 */
-        .centered-checkbox {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-        }}
-
-        .stButton>button {{
+        header {visibility: hidden !important;}
+        #MainMenu {visibility: hidden !important;}
+        footer {visibility: hidden !important;}
+        .stButton>button {
             width: 100%;
             border-radius: 12px;
             height: 3.5em;
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
-        }}
+        }
+        /* 데이터 에디터(표)의 텍스트가 잘 보이도록 설정 */
+        .stDataFrame div[data-testid="stTable"] {
+            border: 2px solid #444 !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 연결 (기존 설정 유지)
+# 2. 구글 시트 연결
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -78,18 +52,19 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [데이터 구성] ---
+# --- [표 데이터 구성] ---
 teams = ["선택하세요", "운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
 
-check_data = [
-    {"작업명": "작업계획 공유", "내용": "작업순서 및 역할 분담 완료"},
-    {"작업명": "보호구 착용", "내용": "안전모, 안전화, 장갑, 보호안경, 마스크 등 착용"},
-    {"작업명": "공구 점검", "내용": "공구 상태 이상없음"},
-    {"작업명": "작업장 정리", "내용": "바닥 미끄럼, 장애물 정리"},
-    {"작업명": "위험구역 설정", "내용": "출입통제 및 안전표지 설치"},
-    {"작업명": "전원 차단 확인", "내용": "Lock-out/Tag-out 적용"},
-    {"작업명": "비상대응 확인", "내용": "소화기, 비상연락망 확인"}
-]
+# 초기 표 데이터 (이미지 양식 그대로)
+df_init = pd.DataFrame([
+    {"작업명": "작업계획 공유", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
+    {"작업명": "보호구 착용", "점검내용": "안전모, 안전화, 장갑, 보호안경, 마스크 등 착용", "확인": False},
+    {"작업명": "공구 점검", "점검내용": "공구 상태 이상없음", "확인": False},
+    {"작업명": "작업장 정리", "점검내용": "바닥 미끄럼, 장애물 정리", "확인": False},
+    {"작업명": "위험구역 설정", "점검내용": "출입통제 및 안전표지 설치", "확인": False},
+    {"작업명": "전원 차단 확인", "점검내용": "Lock-out/Tag-out 적용", "확인": False},
+    {"작업명": "비상대응 확인", "점검내용": "소화기, 비상연락망 확인", "확인": False}
+])
 
 sheet = get_sheet()
 
@@ -105,42 +80,26 @@ if sheet:
         job_name = st.text_input("금일 작업명", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
-        
-        # --- [격자 테두리 표 구현] ---
-        # 헤더 출력 (HTML)
-        st.markdown("""
-            <table class="tbm-grid">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">작업명</th>
-                        <th style="width: 60%;">점검내용</th>
-                        <th style="width: 15%;">확인</th>
-                    </tr>
-                </thead>
-            </table>
-        """, unsafe_allow_html=True)
+        st.write("✅ **점검 항목 확인 (해당 칸을 클릭하여 체크)**")
 
-        check_results = []
-        
-        # 각 행 출력 (Streamlit columns로 HTML 효과 재현)
-        for i, item in enumerate(check_data):
-            # 행 간격을 좁히기 위해 테두리가 있는 컨테이너 효과
-            col1, col2, col3 = st.columns([1.5, 3.5, 1])
-            
-            with col1:
-                st.markdown(f"<div style='border: 1px solid #444; padding: 10px; height: 85px; display: flex; align-items: center; justify-content: center; font-weight: bold;'>{item['작업명']}</div>", unsafe_allow_html=True)
-            with col2:
-                st.markdown(f"<div style='border: 1px solid #444; padding: 10px; height: 85px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem;'>{item['내용']}</div>", unsafe_allow_html=True)
-            with col3:
-                # 체크박스를 칸 정중앙에 배치
-                st.markdown("<div style='border: 1px solid #444; height: 85px; display: flex; align-items: center; justify-content: center;'>", unsafe_allow_html=True)
-                res = st.checkbox("", key=f"row_{i}", label_visibility="collapsed")
-                st.markdown("</div>", unsafe_allow_html=True)
-                check_results.append(res)
-        
+        # --- [🆕 핵심: 칸이 붙어있는 데이터 에디터 표] ---
+        edited_df = st.data_editor(
+            df_init,
+            column_config={
+                "작업명": st.column_config.Column(width="medium", disabled=True),
+                "점검내용": st.column_config.Column(width="large", disabled=True),
+                "확인": st.column_config.CheckboxColumn(width="small", default=False),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+        # --------------------------------------------
+
         st.markdown("---")
         
-        status = "정상" if all(check_results) else "조치 필요"
+        # 모든 항목이 체크되었는지 확인
+        all_checked = edited_df["확인"].all()
+        status = "정상" if all_checked else "조치 필요"
         remark = st.text_area("특이사항 (비고)")
 
         st.write("✒️ **서명**")
