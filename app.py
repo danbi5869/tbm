@@ -16,7 +16,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [UI 디자인]
+# [UI 디자인: 버튼과 헤더 강조]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
@@ -31,11 +31,12 @@ st.markdown("""
         .stButton>button {
             width: 100%;
             border-radius: 12px;
-            height: 3.5em;
+            height: 4em;
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
-            font-size: 1.2em;
+            font-size: 1.3em;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -54,7 +55,7 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정] ---
+# --- [표 제목 설정: 공백으로 중앙 정렬 효과] ---
 h_job = "  작업명  "
 h_content = "         점검내용         "
 h_check = " 확인 "
@@ -72,10 +73,6 @@ df_init = pd.DataFrame([
 sheet = get_sheet()
 
 if sheet:
-    # 세션 상태를 이용해 탭 위치 제어
-    if "current_tab" not in st.session_state:
-        st.session_state.current_tab = 0
-
     tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
 
     with tab1:
@@ -114,7 +111,6 @@ if sheet:
             height=150, width=330, drawing_mode="freedraw", key="canvas_main"
         )
 
-        # 저장 버튼 및 알림 로직
         if st.button("점검 완료 및 저장"):
             if not input_name or not job_name:
                 st.warning("⚠️ 성함과 작업명을 먼저 입력해 주세요.")
@@ -123,14 +119,14 @@ if sheet:
             else:
                 with st.spinner('데이터를 저장 중입니다...'):
                     now = datetime.datetime.now()
+                    # 시트 저장 데이터: 날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명
                     new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "✅ 완료"]
                     try:
                         sheet.append_row(new_row)
-                        # ✅ 명확한 완료 문구 표시
-                        st.success(f"✅ 점검 완료되었습니다! ({input_name}님)")
+                        # ✅ 명확한 알림 메시지
+                        st.success(f"🎊 점검이 정상적으로 완료되었습니다! ({input_name}님)")
                         st.balloons()
-                        # 잠시 대기 후 화면 갱신
-                        time.sleep(2)
+                        time.sleep(2) # 사용자가 성공 메시지를 읽을 시간 확보
                         st.rerun() 
                     except Exception as e:
                         st.error(f"저장 중 오류가 발생했습니다: {e}")
@@ -140,34 +136,36 @@ if sheet:
         today_str = datetime.date.today().isoformat()
         
         try:
+            # --- [수정된 데이터 로딩 로직: name 'row' is not defined 오류 해결] ---
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
+                # 첫 줄(헤더) 가져와서 양끝 공백 제거
                 header = [h.strip() for h in raw_data[0]]
-                valid_cols = [i for i, h in enumerate(header) if h != ""]
-                clean_header = [header[i] for i in valid_cols]
-                data_rows = [[row[i] for i in valid_cols] for raw_data in raw_data[1:]]
                 
-                # 데이터가 없는 경우를 위한 방어 로직
+                # 데이터 본문 가져오기 (헤더 제외 나머지 줄들)
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
-                all_df.columns = [c.strip() for c in all_df.columns]
                 
+                # '서명' 열 이름을 '서명확인'으로 변경하여 보여줌
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
+                # '성함'으로 저장된 경우 '이름'으로 통일
+                if '성함' in all_df.columns:
+                    all_df = all_df.rename(columns={'성함': '이름'})
 
                 if '날짜' in all_df.columns:
                     today_df = all_df[all_df['날짜'] == today_str]
                     st.metric("오늘 완료 인원", f"{len(today_df)}명")
                     
                     if not today_df.empty:
+                        # 요청하신 순서: 날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
-                        # 열 이름이 '이름' 대신 '성함'으로 저장되었을 경우를 대비
-                        if '이름' not in today_df.columns and '성함' in today_df.columns:
-                            today_df = today_df.rename(columns={'성함': '이름'})
-                        
                         available_cols = [c for c in display_cols if c in today_df.columns]
+                        
                         st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
                     else:
                         st.info("오늘 점검을 완료한 인원이 아직 없습니다.")
+                else:
+                    st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
             else:
                 st.warning("저장된 데이터가 없습니다.")
         except Exception as e:
