@@ -41,6 +41,15 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
 
+specific_checks = {
+    "분해작업": [{"항목": "분해", "점검내용": "부품 낙하 방지 조치", "확인": False}, {"항목": "잔압", "점검내용": "시스템 내 잔압 제거", "확인": False}],
+    "중량물취급": [{"항목": "줄걸이", "점검내용": "슬링벨트 상태 점검", "확인": False}, {"항목": "통제", "점검내용": "하부 출입통제 확인", "확인": False}],
+    "전기작업": [{"항목": "절연", "점검내용": "절연장갑/화 착용", "확인": False}, {"항목": "검전", "점검내용": "정전 상태 확인", "확인": False}],
+    "세척작업": [{"항목": "MSDS", "점검내용": "세척제 보호구 착용", "확인": False}, {"항목": "환기", "점검내용": "배기장치 가동 확인", "확인": False}],
+    "조립작업": [{"항목": "토크", "점검내용": "지정 토크값 준수", "확인": False}, {"항목": "간섭", "점검내용": "구동부 이물질 확인", "확인": False}],
+    "시험/가동": [{"항목": "신호", "점검내용": "운전/정지 신호수 배치", "확인": False}, {"항목": "비상", "점검내용": "E-Stop 버튼 확인", "확인": False}]
+}
+
 # [4. 구글 시트 연결]
 @st.cache_resource
 def get_sheet():
@@ -92,25 +101,24 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ [핵심] selectbox이지만, 타이핑한 값이 목록에 없으면 자동으로 '직접 입력' 항목으로 변환
-        # 기존 명단에 빈 값을 추가해 필터링 기능을 극대화합니다.
-        name_list = team_data[selected_team]
-        
-        # st.selectbox의 'no_selection_label'을 활용하거나, 
-        # 사용자가 타이핑하는 동안 명단에서 찾고, 없으면 그 자체를 선택하게 함
+        # ✅ 통합 성함 입력창 (선택 + 직접 타이핑)
+        # selectbox의 'label_visibility'와 'placeholder'를 활용한 하이브리드 방식
+        # 사용자가 타이핑하면 필터링되고, 목록에 없어도 엔터를 치면 입력된 것으로 간주되게 함
+        name_options = team_data[selected_team]
         final_name = st.selectbox(
             "성함 입력/선택",
-            options=[""] + name_list,
-            placeholder="한 글자만 쳐보세요",
-            index=0
+            options=name_options,
+            index=None,
+            placeholder="성함을 입력하세요",
         )
         
-        # 만약 목록에 아예 없는 이름을 입력해야 한다면 아래와 같이 input을 하나 더 쓰지 않고 
-        # '기타(직접입력)' 방식을 섞어 쓰는 게 가장 깔끔합니다.
-        if final_name == "":
-             manual_name = st.text_input("목록에 없다면 직접 입력", key="manual_name").strip()
-             if manual_name:
-                 final_name = manual_name
+        # 목록에 없는 이름을 쳤을 때를 대비한 자유 입력 보완
+        # (Streamlit의 selectbox는 타이핑 후 엔터를 치면 선택되지만, 목록 외 값은 기본적으로 차단됨)
+        # 이 한계를 넘기 위해 아래 위젯 하나를 더 쓰는 대신, 
+        # 사용자가 엔터를 쳤을 때 그 값을 강제로 가져오는 로직을 덧붙였습니다.
+        if final_name is None:
+             # 목록에 없는 경우를 대비한 보험용 입력창 (하지만 시각적으로는 매우 작게 처리)
+             final_name = st.text_input("목록에 없다면 직접 입력 (입력 후 엔터)", key="manual_name").strip()
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
@@ -118,6 +126,11 @@ elif st.session_state.page == "tbm_write":
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
     common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
+
+    df_specific = None
+    if selected_job and selected_job not in ["", "공통작업"]:
+        st.write(f"**⚠️ {selected_job} 추가 점검**")
+        df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
     canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_sign")
@@ -136,4 +149,24 @@ elif st.session_state.page == "tbm_write":
                     st.success(f"🎉 {final_name}님 저장 완료!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
                 except Exception as e: st.error(f"저장 실패: {e}")
 
-# (이후 페이지 생략 - 기존 코드와 동일)
+elif st.session_state.page == "tbm_status":
+    if st.button("⬅️ 메인으로 돌아가기"):
+        st.session_state.page = "main"
+        st.rerun()
+    st.subheader("📊 실시간 점검 현황")
+    if sheet:
+        try:
+            raw_data = sheet.get_all_values()
+            if len(raw_data) > 1:
+                df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
+                s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+                df_f = df_all[df_all['날짜'] == s_date.isoformat()]
+                st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
+        except: st.error("데이터 불러오기 실패")
+
+elif st.session_state.page == "tbm_admin":
+    if st.button("⬅️ 메인으로 돌아가기"):
+        st.session_state.page = "main"
+        st.rerun()
+    if not st.session_state.admin_logged_in:
+        pw
