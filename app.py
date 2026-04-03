@@ -6,7 +6,7 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# 1. App Configuration & Icon (Cache busting v15)
+# 1. 앱 설정 및 아이콘 (v15 유지)
 icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=15"
 
 try:
@@ -20,21 +20,18 @@ st.set_page_config(
     layout="centered"
 )
 
-# [UI Design: Remove header, menu, and footer for a native app feel]
+# [UI 디자인 스타일 유지]
 st.markdown(f"""
     <style>
         header {{visibility: hidden !important;}}
         #MainMenu {{visibility: hidden !important;}}
         footer {{visibility: hidden !important;}}
-        
         .st-emotion-cache-16471hc {{display: none !important;}}
         .st-emotion-cache-ch5vc {{display: none !important;}}
-
         .block-container {{
             padding-top: 1rem !important;
             padding-bottom: 0rem !important;
         }}
-        
         .stButton>button {{
             width: 100%;
             border-radius: 12px;
@@ -45,15 +42,9 @@ st.markdown(f"""
             border: none;
         }}
     </style>
-    <head>
-        <link rel="apple-touch-icon" href="{icon_url}">
-        <link rel="icon" type="image/png" href="{icon_url}">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    </head>
 """, unsafe_allow_html=True)
 
-# 2. Google Sheets Authentication
+# 2. 구글 시트 인증 및 연결
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -68,7 +59,13 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# Checklist items
+# --- [부서 목록만 유지] ---
+teams = [
+    "선택하세요", "운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", 
+    "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", 
+    "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"
+]
+
 checklist_items = ["개인보호구 착용 상태 확인", "작업 전 위험요인 파악 및 공유", "사용 장비 점검 완료"]
 
 sheet = get_sheet()
@@ -84,18 +81,16 @@ if sheet:
 
         st.subheader("🏗️ 안전 점검 일지")
         
-        # --- [REFACTORED: Manual Input Section] ---
+        # --- [수정: 부서는 선택, 이름은 입력] ---
         col1, col2 = st.columns(2)
         with col1:
-            # Replaced selectbox with text_input
-            input_team = st.text_input("소속 부서", placeholder="예: 운영, 정비 등")
+            selected_team = st.selectbox("소속 부서", teams)
         with col2:
-            # Replaced selectbox with text_input
             input_name = st.text_input("성함", placeholder="이름 입력")
 
         st.markdown("---")
         
-        # Checklist logic
+        # 체크리스트 생성
         check_results = []
         for i, item in enumerate(checklist_items):
             res = st.checkbox(f" {item}", key=f"q_{i}")
@@ -111,15 +106,15 @@ if sheet:
         )
 
         if st.button("점검 완료 및 저장"):
-            # Validation: Ensure names are not empty
-            if not input_team or not input_name:
-                st.warning("⚠️ 소속 부서와 성함을 모두 입력해 주세요.")
+            # 유효성 검사 (부서 미선택 또는 이름 미입력)
+            if selected_team == "선택하세요" or not input_name:
+                st.warning("⚠️ 부서를 선택하고 성함을 입력해 주세요.")
             elif canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해야 저장할 수 있습니다.")
             else:
                 now_time = datetime.datetime.now().strftime('%H:%M:%S')
                 today_date = datetime.date.today().isoformat()
-                new_row = [today_date, input_team, input_name, status, now_time, remark, "서명완료"]
+                new_row = [today_date, selected_team, input_name, status, now_time, remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
                     st.success(f"🎉 {input_name}님, 저장 완료!")
