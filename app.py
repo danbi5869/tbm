@@ -55,7 +55,7 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정: 공백으로 중앙 정렬 효과] ---
+# --- [표 제목 설정] ---
 h_job = "  작업명  "
 h_content = "         점검내용         "
 h_check = " 확인 "
@@ -103,7 +103,8 @@ if sheet:
         
         all_checked = edited_df[h_check].all() 
         status = "정상" if all_checked else "조치 필요"
-        remark = st.text_area("특이사항 (비고)", key="remark_input")
+        
+        # ✅ 특이사항(비고) 입력란 삭제됨
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
@@ -119,14 +120,13 @@ if sheet:
             else:
                 with st.spinner('데이터를 저장 중입니다...'):
                     now = datetime.datetime.now()
-                    # 시트 저장 데이터: 날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명
-                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "✅ 완료"]
+                    # 시트 저장 데이터: 날짜, 소속, 성함, 작업명, 상태, 시간, 서명 (비고 제외)
+                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), "✅ 완료"]
                     try:
                         sheet.append_row(new_row)
-                        # ✅ 명확한 알림 메시지
                         st.success(f"🎊 점검이 정상적으로 완료되었습니다! ({input_name}님)")
                         st.balloons()
-                        time.sleep(2) # 사용자가 성공 메시지를 읽을 시간 확보
+                        time.sleep(2) 
                         st.rerun() 
                     except Exception as e:
                         st.error(f"저장 중 오류가 발생했습니다: {e}")
@@ -136,19 +136,14 @@ if sheet:
         today_str = datetime.date.today().isoformat()
         
         try:
-            # --- [수정된 데이터 로딩 로직: name 'row' is not defined 오류 해결] ---
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
-                # 첫 줄(헤더) 가져와서 양끝 공백 제거
                 header = [h.strip() for h in raw_data[0]]
-                
-                # 데이터 본문 가져오기 (헤더 제외 나머지 줄들)
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
                 
                 # '서명' 열 이름을 '서명확인'으로 변경하여 보여줌
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
-                # '성함'으로 저장된 경우 '이름'으로 통일
                 if '성함' in all_df.columns:
                     all_df = all_df.rename(columns={'성함': '이름'})
 
@@ -157,7 +152,7 @@ if sheet:
                     st.metric("오늘 완료 인원", f"{len(today_df)}명")
                     
                     if not today_df.empty:
-                        # 요청하신 순서: 날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인
+                        # ✅ 현황판에서도 비고 제외 (날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인)
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
                         available_cols = [c for c in display_cols if c in today_df.columns]
                         
