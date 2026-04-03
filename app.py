@@ -69,7 +69,7 @@ st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
-        .main-header { background-color: #1E3A8A; padding: 1rem 0; border-radius: 0 0 15px 15px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .main-header { background-color: #1E3A8A; padding: 1rem 0; border-radius: 0 0 15px 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2rem; margin: 0; }
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .stButton>button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; transition: 0.1s; }
@@ -81,28 +81,35 @@ st.markdown("""
         .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
         div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; height: 3.5rem; border: none !important; }
-        .notice-box { background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #1E3A8A; }
+        .notice-box { background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #1E3A8A; font-size: 16px; }
     </style>
 """, unsafe_allow_html=True)
 
 # [6. 화면 전환 로직]
 
+# 🏠 메인 화면 (안전 지시사항 포함)
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
+    
+    # [수정] 메인 화면 최상단에 안전 지시사항 배치
+    display_text = st.session_state.safety_notice.replace("\n", "<br>")
+    st.markdown(f'<div class="notice-box"><b>📢 금일 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
+    
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
+    st.write("") # 간격 조절
     if st.button("📊 실시간 점검 현황 확인"):
         st.session_state.page = "tbm_status"; st.rerun()
+    st.write("") # 간격 조절
     if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
+# 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
         
     st.subheader("🏗️ TBM 점검 작성")
-    display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'<div class="notice-box"><b>📋 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
     with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
@@ -141,7 +148,7 @@ elif st.session_state.page == "tbm_write":
                 except:
                     st.error("구글 시트 저장 실패")
 
-# 📊 현황 확인 페이지 (날짜 + 이름별 검색 기능 추가)
+# 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
@@ -150,25 +157,15 @@ elif st.session_state.page == "tbm_status":
     try:
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
-            # 시트 데이터를 데이터프레임으로 변환
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            
-            # 검색 필터 UI
             col1, col2 = st.columns(2)
             with col1:
                 s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
             with col2:
                 s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
             
-            # 필터링 로직
-            # 1. 날짜 필터링
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
-            
-            # 2. 이름 필터링 (입력값이 있을 때만 실행)
             if s_name:
-                # '이름' 컬럼이 시트에 있어야 합니다. (원본 로직상 3번째 컬럼이 '성함' 혹은 '이름'으로 저장됨)
-                # 시트의 헤더명에 맞춰 '성함' 혹은 '이름'으로 컬럼명을 확인하세요. 
-                # 여기서는 사용자님의 append_row 순서에 따라 3번째 컬럼을 기준으로 잡습니다.
                 name_col = df_all.columns[2] 
                 df_f = df_f[df_f[name_col].str.contains(s_name, na=False)]
             
@@ -180,6 +177,7 @@ elif st.session_state.page == "tbm_status":
     except Exception as e:
         st.error(f"데이터 불러오기 실패: {e}")
 
+# ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
@@ -188,6 +186,6 @@ elif st.session_state.page == "tbm_admin":
         if st.button("로그인"):
             if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
     else:
-        new_notice = st.text_area("공지 수정", st.session_state.safety_notice)
+        new_notice = st.text_area("공지 수정", st.session_state.safety_notice, height=150)
         if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("저장됨")
         if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
