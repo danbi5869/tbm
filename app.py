@@ -16,73 +16,42 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# --- [🆕 고급 UI 디자인: CSS 스타일링] ---
+# --- [고급 UI 디자인: 격자 테두리 및 중앙 정렬 CSS] ---
 st.markdown(f"""
     <style>
-        /* 기본 숨기기 설정 */
         header {{visibility: hidden !important;}}
         #MainMenu {{visibility: hidden !important;}}
         footer {{visibility: hidden !important;}}
         .block-container {{ padding-top: 1rem !important; }}
         
-        /* 🎨 표 전체 스타일 정의 */
-        .tbm-table-container {{
+        /* 테이블 스타일: 테두리 합치기 및 중앙 정렬 */
+        .tbm-grid {{
             width: 100%;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            border-collapse: separate;
-            border-spacing: 0;
-            border: 1px solid #ddd;
-            border-radius: 8px; /* 표 전체 둥근 모서리 */
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 은은한 그림자 */
+            border-collapse: collapse; /* 테두리 겹치기 */
+            margin-bottom: 20px;
         }}
         
-        /* 표 헤더 (작업명, 점검내용, 확인) */
-        .tbm-header {{
-            background-color: #f0f2f6; /* 연한 그레이 배경 */
-            color: #333;
-            font-weight: bold;
-            text-align: center;
-            padding: 12px;
-            font-size: 0.95rem;
-            border-bottom: 2px solid #ddd;
-        }}
-        
-        /* 표 행 (Row) 설정 */
-        .tbm-row {{
-            background-color: white;
-            transition: background-color 0.2s; /* 부드러운 전환 */
-        }}
-        .tbm-row:hover {{
-            background-color: #f8f9fa; /* 마우스 오버 시 배경색 변경 */
-        }}
-        
-        /* 표 셀 (Cell) 설정 - 완벽한 가운데 정렬 */
-        .tbm-cell {{
-            padding: 12px 10px;
-            text-align: center; /* 가로 중앙 정렬 */
-            vertical-align: middle !important; /* 세로 중앙 정렬 */
-            border-bottom: 1px solid #eee;
+        .tbm-grid th, .tbm-grid td {{
+            border: 1px solid #444444; /* 진한 테두리 */
+            padding: 12px 8px;
+            text-align: center; /* 가로 중앙 */
+            vertical-align: middle; /* 세로 중앙 */
             font-size: 0.85rem;
-            color: #555;
-            line-height: 1.4;
         }}
         
-        /* 마지막 행 테두리 제거 */
-        .tbm-row:last-child .tbm-cell {{
-            border-bottom: none;
+        .tbm-grid th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
         }}
-        
-        /* 체크박스 컨테이너 (정렬용) */
-        .checkbox-container {{
+
+        /* 체크박스 정렬용 컨테이너 */
+        .centered-checkbox {{
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100%;
         }}
 
-        /* 하단 버튼 스타일 */
         .stButton>button {{
             width: 100%;
             border-radius: 12px;
@@ -90,12 +59,11 @@ st.markdown(f"""
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 구글 시트 연결 로직 (이전과 동일)
+# 2. 구글 시트 연결 (기존 설정 유지)
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -110,7 +78,7 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [표 데이터 구성] ---
+# --- [데이터 구성] ---
 teams = ["선택하세요", "운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
 
 check_data = [
@@ -131,50 +99,49 @@ if sheet:
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
         
-        # 기본 정보 입력
         c1, c2 = st.columns(2)
         with c1: selected_team = st.selectbox("소속 부서", teams)
         with c2: input_name = st.text_input("성함", placeholder="이름 입력")
-        job_name = st.text_input("금일 작업명", placeholder="진행할 작업명을 입력하세요")
+        job_name = st.text_input("금일 작업명", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
-        st.write("✅ **점검 항목 확인**")
         
-        # --- [🆕 표 형식 체크리스트 구현 시작] ---
-        # 1. 표의 헤더 생성
-        h1, h2, h3 = st.columns([1.5, 3, 1])
-        h1.markdown("<div class='tbm-header'>작업명</div>", unsafe_allow_html=True)
-        h2.markdown("<div class='tbm-header'>점검내용</div>", unsafe_allow_html=True)
-        h3.markdown("<div class='tbm-header'>확인</div>", unsafe_allow_html=True)
+        # --- [격자 테두리 표 구현] ---
+        # 헤더 출력 (HTML)
+        st.markdown("""
+            <table class="tbm-grid">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">작업명</th>
+                        <th style="width: 60%;">점검내용</th>
+                        <th style="width: 15%;">확인</th>
+                    </tr>
+                </thead>
+            </table>
+        """, unsafe_allow_html=True)
 
         check_results = []
         
-        # 2. 데이터 행 생성
+        # 각 행 출력 (Streamlit columns로 HTML 효과 재현)
         for i, item in enumerate(check_data):
-            # st.columns 안의 모든 요소는 CSS로 중앙 정렬됨
-            with st.container(): # 각 행을 컨테이너로 묶음
-                row_c1, row_c2, row_c3 = st.columns([1.5, 3, 1])
-                
-                # '작업명' 셀 (Bold 처리)
-                row_c1.markdown(f"<div class='checkbox-container' style='min-height:70px;'><b>{item['작업명']}</b></div>", unsafe_allow_html=True)
-                
-                # '점검내용' 셀
-                row_c2.markdown(f"<div class='checkbox-container' style='min-height:70px; text-align:left;'>{item['내용']}</div>", unsafe_allow_html=True)
-                
-                # '확인' 체크박스 셀
-                with row_c3:
-                    # Streamlit 체크박스를 중앙에 배치하기 위한 trick
-                    st.write("") # 상단 여백
-                    st.write("") # 상단 여백
-                    res = st.checkbox("", key=f"row_{i}")
-                    check_results.append(res)
-            # 행 구분선
-            st.markdown("<div style='border-bottom:1px solid #eee; margin: 0 10px;'></div>", unsafe_allow_html=True)
-        # --- [표 형식 체크리스트 끝] ---
-
+            # 행 간격을 좁히기 위해 테두리가 있는 컨테이너 효과
+            col1, col2, col3 = st.columns([1.5, 3.5, 1])
+            
+            with col1:
+                st.markdown(f"<div style='border: 1px solid #444; padding: 10px; height: 85px; display: flex; align-items: center; justify-content: center; font-weight: bold;'>{item['작업명']}</div>", unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"<div style='border: 1px solid #444; padding: 10px; height: 85px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem;'>{item['내용']}</div>", unsafe_allow_html=True)
+            with col3:
+                # 체크박스를 칸 정중앙에 배치
+                st.markdown("<div style='border: 1px solid #444; height: 85px; display: flex; align-items: center; justify-content: center;'>", unsafe_allow_html=True)
+                res = st.checkbox("", key=f"row_{i}", label_visibility="collapsed")
+                st.markdown("</div>", unsafe_allow_html=True)
+                check_results.append(res)
+        
         st.markdown("---")
+        
         status = "정상" if all(check_results) else "조치 필요"
-        remark = st.text_area("특이사항 (비고)", placeholder="내용을 입력하세요.")
+        remark = st.text_area("특이사항 (비고)")
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
@@ -184,19 +151,19 @@ if sheet:
 
         if st.button("점검 완료 및 저장"):
             if selected_team == "선택하세요" or not input_name or not job_name:
-                st.warning("⚠️ 모든 정보를 입력해 주세요.")
+                st.warning("⚠️ 모든 빈칸을 채워주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
-                st.warning("⚠️ 서명이 완료되지 않았습니다.")
+                st.warning("⚠️ 서명이 필요합니다.")
             else:
                 now = datetime.datetime.now()
                 new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
-                    st.success("🎉 저장 완료!今日もご安全に!")
+                    st.success("🎉 저장 성공!")
                     st.balloons()
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
     with tab2:
         st.subheader("📊 오늘 현황")
-        # 현황판 로직은 이전과 동일
+        # (현황판 로직 생략)
