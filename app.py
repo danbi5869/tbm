@@ -21,6 +21,7 @@ st.markdown("""
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
+        /* 표 헤더 스타일: 굵게 및 배경색 */
         div[data-testid="stDataFrame"] th {
             font-weight: 900 !important;
             color: #000 !important;
@@ -52,7 +53,7 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정: 공백으로 중앙 정렬 효과] ---
+# --- [표 제목 설정: 특수 공백으로 제목만 중앙 정렬 효과] ---
 h_job = "  작업명  "
 h_content = "         점검내용         "
 h_check = " 확인 "
@@ -83,6 +84,7 @@ if sheet:
 
         st.markdown("---")
         
+        # 편집기 설정 (본문은 왼쪽 정렬 유지)
         edited_df = st.data_editor(
             df_init,
             column_config={
@@ -120,7 +122,7 @@ if sheet:
                     sheet.append_row(new_row)
                     st.success(f"🎉 {input_name}님, 저장 완료!")
                     st.balloons()
-                    st.rerun() # 저장 후 현황판 업데이트를 위해 새로고침
+                    st.rerun() 
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
@@ -130,21 +132,25 @@ if sheet:
         st.write(f"📅 기준일: {today_str}")
 
         try:
-            records = sheet.get_all_records()
-            if records:
-                all_df = pd.DataFrame(records)
-                # 컬럼명 공백 제거 (안전용)
-                all_df.columns = [col.strip() for col in all_df.columns]
+            # --- [중복 헤더 오류 방지 로직] ---
+            # get_all_records 대신 get_all_values를 사용하여 수동으로 데이터프레임 구축
+            raw_data = sheet.get_all_values()
+            if len(raw_data) > 1:
+                # 1. 헤더에서 실제 이름이 있는 열까지만 추출 (빈 열 무시)
+                header = [h.strip() for h in raw_data[0]]
+                valid_cols = [i for i, h in enumerate(header) if h != ""]
                 
-                # 오늘 날짜 데이터만 필터링 (날짜 컬럼 기준)
+                # 2. 유효한 열 데이터만 선택하여 데이터프레임 생성
+                clean_header = [header[i] for i in valid_cols]
+                data_rows = [[row[i] for i in valid_cols] for row in raw_data[1:]]
+                
+                all_df = pd.DataFrame(data_rows, columns=clean_header)
+                
                 if '날짜' in all_df.columns:
                     today_df = all_df[all_df['날짜'] == today_str]
-                    
-                    # 요약 지표
                     st.metric("오늘 완료 인원", f"{len(today_df)}명")
                     
                     if not today_df.empty:
-                        # 필요한 열만 예쁘게 출력
                         display_cols = ['시간', '소속', '이름', '작업명', '상태', '비고']
                         available_cols = [c for c in display_cols if c in today_df.columns]
                         st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
@@ -153,6 +159,6 @@ if sheet:
                 else:
                     st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
             else:
-                st.warning("데이터가 비어 있습니다.")
+                st.warning("저장된 데이터가 없습니다.")
         except Exception as e:
             st.error(f"데이터 로딩 오류: {e}")
