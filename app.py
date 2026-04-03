@@ -64,13 +64,12 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 버튼 정렬 및 1줄 고정 최적화]
+# [5. 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
         
-        /* 1줄 제목 디자인 */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1.2rem 0.5rem; 
@@ -87,7 +86,6 @@ st.markdown("""
             letter-spacing: -1px;
         }
         
-        /* 메인 컨테이너 정중앙 배치 */
         .main-container {
             display: flex;
             flex-direction: column;
@@ -95,7 +93,6 @@ st.markdown("""
             width: 100%;
         }
         
-        /* 공지 박스: 버튼 박스와 너비 통일 */
         .notice-box { 
             background-color: #DBEAFE; 
             border-left: 5px solid #1E3A8A; 
@@ -106,11 +103,10 @@ st.markdown("""
             text-align: left;
             margin-bottom: 20px;
             width: 95%; 
-            max-width: 420px; /* 버튼 글자가 넉넉히 들어가도록 넓힘 */
+            max-width: 420px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        /* 버튼 스타일: 글자를 충분히 감싸는 넉넉한 박스 & 중앙 정렬 */
         div.stButton {
             display: flex;
             justify-content: center;
@@ -119,17 +115,16 @@ st.markdown("""
         
         .stButton>button { 
             width: 95% !important; 
-            max-width: 420px !important; /* 공지 박스와 너비 일치 */
+            max-width: 420px !important; 
             min-height: 4.8rem;
             border-radius: 12px; 
-            /* 모바일에서도 1줄 유지를 위해 폰트 크기 자동 조절 */
             font-size: clamp(14px, 4vw, 19px) !important; 
             font-weight: 700 !important; 
             margin: 10px 0 !important; 
             border: 2.5px solid #1E3A8A !important;
             background-color: white !important;
             color: #1E3A8A !important;
-            white-space: nowrap !important; /* 강제 1줄 */
+            white-space: nowrap !important;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -138,23 +133,24 @@ st.markdown("""
         }
         .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
 
-        /* 특수 버튼(메인으로 등)은 예외 처리 */
-        div.stButton > button:has(div:contains("메인으로")) { 
-            height: 2.5rem !important; min-height: 2.5rem !important; max-width: 150px !important; 
-            font-size: 14px !important; border: none !important; background-color: #E2E8F0 !important; color: #475569 !important;
+        /* 상단 네비게이션용 특수 버튼 스타일 */
+        div.stButton > button:has(div:contains("메인으로")),
+        div.stButton > button:has(div:contains("현황 확인")) { 
+            height: 3rem !important; min-height: 3rem !important; 
+            font-size: 15px !important; margin: 5px 0 !important;
+        }
+        
+        div.stButton > button:has(div:contains("메인으로")) {
+            background-color: #E2E8F0 !important; color: #475569 !important; border: none !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # [6. 화면 전환 로직]
 if st.session_state.page == "main":
-    # 제목 1줄 고정
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
-    
-    # 전체 중앙 정렬 시작
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
     
-    # 1. 공지사항 영역
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-box">
@@ -162,7 +158,6 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    # 2. 버튼 영역 (글자 크기에 맞춘 넉넉한 박스 & 정중앙)
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
         
@@ -172,12 +167,20 @@ if st.session_state.page == "main":
     if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True) # 컨테이너 끝
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"; st.rerun()
+    # --- 상단 버튼 로직 적용 시작 ---
+    nav_col1, nav_col2 = st.columns(2)
+    with nav_col1:
+        if st.button("⬅️ 메인으로"):
+            st.session_state.page = "main"; st.rerun()
+    with nav_col2:
+        if st.button("📊 현황 확인"):
+            st.session_state.page = "tbm_status"; st.rerun()
+    st.markdown("---")
+    # --- 상단 버튼 로직 적용 끝 ---
         
     st.subheader("🏗️ TBM 점검 작성")
     
