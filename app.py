@@ -22,35 +22,6 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [팀 명단 데이터]
-team_data = {
-    "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
-    "기술": ["황종연"],
-    "입출창": ["이천형", "전동길", "허유정", "서대영"],
-    "중요장치장": ["송진수", "임대권", "이준혁", "김명철"],
-    "전기/제동장": ["손해진", "주승용"],
-    "전기": ["이경민", "금창욱", "권혁진", "임의진", "박태규"],
-    "판토": ["유문일", "이현우"],
-    "제동": ["오성윤", "허성우", "김원경", "전창근", "서준영", "이진호"],
-    "정비": ["김성태", "배욱"],
-    "차체/수선장": ["최덕수", "반상민"],
-    "출입문": ["김지훈", "추동일", "한지훈", "백승주", "최창열", "윤성현"],
-    "차체": ["박노갑", "박종환", "최규현"],
-    "냉방장치": ["김정혁", "김기훈", "설태길"],
-    "회전기장": ["박기하", "이성보"],
-    "TM": ["박석희", "오현택", "유상훈"],
-    "CM": ["안상복", "김태경"],
-    "대차장": ["임청용", "정호영"],
-    "댐퍼/에어스프링": ["정성목", "이태수"],
-    "기초제동1": ["우원진", "연제동", "이창록"],
-    "기초제동2": ["김영일", "정진영", "허재혁"],
-    "윤축/축상장": ["김성수", "이성문"],
-    "윤축": ["정승욱", "나용환", "박주현"],
-    "축상": ["박상언", "윤종혁", "방건동", "박준수"],
-    "차륜": ["지민석", "곽동영", "안형륜", "이동호"],
-    "탐상": ["박윤찬", "이동호"]
-}
-
 # [UI 디자인 - 톤다운 버전]
 st.markdown("""
     <style>
@@ -114,9 +85,11 @@ if sheet:
         
         c1, c2 = st.columns(2)
         with c1:
-            selected_team = st.selectbox("소속 부서", list(team_data.keys()), key="dept_sel")
+            team_list = ["운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
+            selected_team = st.selectbox("소속 부서", team_list, key="dept_sel")
         with c2:
-            input_name = st.selectbox("성함 선택", team_data[selected_team], key="name_sel")
+            # ✅ [수정] 미리 명단이 나오지 않도록 직접 입력창으로 변경
+            input_name = st.text_input("성함 입력", key="name_input", placeholder="성함을 입력하세요")
         
         job_name = st.text_input("금일 작업명", key="job_input", placeholder="작업명을 입력하세요")
 
@@ -127,8 +100,8 @@ if sheet:
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
-            if not job_name:
-                st.warning("⚠️ 작업명을 입력해 주세요.")
+            if not input_name or not job_name:
+                st.warning("⚠️ 성함과 작업명을 입력해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해 주세요.")
             else:
@@ -143,36 +116,36 @@ if sheet:
     # --- [TAB 2: 전체 점검 현황 - 검색 기반 조회] ---
     with tab2:
         st.subheader("📊 점검 현황 검색")
-        st.write("조회하고 싶은 인원의 성함을 입력하세요.")
         
         c_date, c_search = st.columns(2)
         with c_date: 
             s_date = st.date_input("📅 날짜 선택", datetime.date.today())
         with c_search:
-            # ✅ 초기값은 빈칸으로 두어, 입력 전에는 아무것도 검색되지 않게 함
-            name_query = st.text_input("👤 이름 검색 (예: 노)", placeholder="이름을 입력하면 데이터가 나타납니다.")
+            # ✅ 입력하기 전까지는 아무것도 조회되지 않음
+            name_query = st.text_input("👤 이름 검색", placeholder="성함을 입력하면 조회가 시작됩니다.")
             
         s_date_str = s_date.isoformat()
         
-        if name_query: # ✅ 이름 입력값이 있을 때만 아래 로직 실행
+        # 이름 입력값이 있을 때만 데이터를 시트에서 불러옴
+        if name_query: 
             try:
                 raw_data = sheet.get_all_values()
                 if len(raw_data) > 1:
                     all_df = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
                     if '성함' in all_df.columns: all_df = all_df.rename(columns={'성함': '이름'})
 
-                    # 날짜와 이름 포함 여부로 필터링
+                    # 날짜 일치 + 이름 포함 여부 필터링
                     df_filtered = all_df[(all_df['날짜'] == s_date_str) & (all_df['이름'].str.contains(name_query, na=False))]
 
                     if not df_filtered.empty:
                         st.metric(f"'{name_query}' 검색 결과", f"{len(df_filtered)}건")
                         st.dataframe(df_filtered[['날짜', '시간', '소속', '이름', '작업명', '상태']], use_container_width=True, hide_index=True)
                     else:
-                        st.info(f"'{name_query}'님에 대한 해당 날짜의 기록이 없습니다.")
+                        st.info(f"'{name_query}'님에 대한 기록이 없습니다.")
             except: 
-                st.error("데이터 로딩 중 오류가 발생했습니다.")
+                st.error("데이터 로딩 오류")
         else:
-            st.info("💡 성함을 입력하시면 점검 기록을 확인하실 수 있습니다.")
+            st.info("💡 조회하고자 하는 성함을 상단 검색창에 입력해 주세요.")
 
     # --- [TAB 3: 관리자 설정] ---
     with tab3:
