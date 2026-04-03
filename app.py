@@ -6,8 +6,6 @@ import datetime
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 import time
-
-# --- [추가] 한국 시간 설정을 위한 라이브러리 ---
 from datetime import timezone, timedelta
 
 # 1. 앱 설정
@@ -143,20 +141,9 @@ if sheet:
             else:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
-                        # ✅ [수정] 서버 시간(UTC)을 한국 시간(KST)으로 변환
                         kst = timezone(timedelta(hours=9))
                         now = datetime.datetime.now(kst)
-                        
-                        sheet.append_row([
-                            now.strftime('%Y-%m-%d'), 
-                            selected_team, 
-                            input_name, 
-                            selected_job, 
-                            "정상", 
-                            now.strftime('%H:%M:%S'), 
-                            "✅ 완료", 
-                            ""
-                        ])
+                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
                         st.balloons()
                         time.sleep(2)
@@ -164,11 +151,10 @@ if sheet:
                     except Exception as e:
                         st.error(f"저장 중 오류 발생: {e}")
 
-    # --- TAB 2: 전체 점검 현황 ---
+    # --- TAB 2: 전체 점검 현황 (최신순 정렬 적용) ---
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
-        # 검색 필터의 오늘 날짜도 한국 시간 기준으로 설정
         kst_today = datetime.datetime.now(timezone(timedelta(hours=9))).date()
         with c_date: s_date = st.date_input("📅 날짜 선택", kst_today)
         with c_name: s_name = st.text_input("👤 이름 검색")
@@ -180,6 +166,10 @@ if sheet:
                 df_f = df_all[df_all['날짜'] == s_date.isoformat()]
                 if s_name: 
                     df_f = df_f[df_f['이름'].str.contains(s_name, na=False)]
+                
+                # ✅ [핵심 수정] 최신순 정렬: 인덱스를 역순으로 뒤집어 최신 데이터가 위로 오게 함
+                df_f = df_f.iloc[::-1].reset_index(drop=True)
+                
                 st.dataframe(df_f, use_container_width=True, hide_index=True)
             else: st.info("기록된 데이터가 없습니다.")
         except: st.error("데이터 로딩 중 오류가 발생했습니다.")
@@ -192,12 +182,3 @@ if sheet:
             if st.button("로그인"):
                 if admin_pw == "admin@123":
                     st.session_state.admin_logged_in = True; st.rerun()
-                else: st.error("비밀번호가 일치하지 않습니다.")
-        else:
-            st.success("🔓 관리자 모드 활성화")
-            new_notice = st.text_area("📢 메인 공지사항 수정", st.session_state.safety_notice, height=150)
-            if st.button("지시사항 저장"):
-                st.session_state.safety_notice = new_notice
-                st.success("공지사항이 업데이트되었습니다!"); time.sleep(1); st.rerun()
-            if st.button("로그아웃"):
-                st.session_state.admin_logged_in = False; st.rerun()
