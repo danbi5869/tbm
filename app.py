@@ -37,74 +37,65 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [4. 스타일 디자인 - 모바일 1줄 제목 및 수직 정렬 최적화]
+# [4. 스타일 디자인 - 제목 1줄 & 버튼 1줄 가로 정렬]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
         
-        /* 헤더: 제목 1줄 유지 및 크기 자동 조절 */
+        /* 헤더: 제목 1줄 고정 */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1.2rem 0.5rem; 
             border-radius: 0 0 15px 15px; 
             margin-bottom: 1.5rem; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             text-align: center;
         }
         .main-header h1 { 
             color: white !important; 
-            font-size: clamp(1.2rem, 5vw, 2.2rem) !important; /* 최소 1.2rem, 화면의 5%, 최대 2.2rem */
+            font-size: clamp(1.1rem, 4.5vw, 2rem) !important; 
             margin: 0; 
-            white-space: nowrap; /* 줄바꿈 방지 */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            letter-spacing: -1px; /* 글자 간격 살짝 좁힘 */
+            white-space: nowrap; 
+            letter-spacing: -1px;
         }
         
-        /* 중앙 정렬용 컨테이너 */
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-
-        /* 공지 박스: 버튼 너비와 일치시킴 */
-        .notice-box { 
-            background-color: #DBEAFE; 
-            border-left: 5px solid #1E3A8A; 
-            padding: 18px; 
-            border-radius: 10px; 
-            color: #1E3A8A; 
-            font-size: 16px; 
-            text-align: left;
-            margin-bottom: 15px;
-            width: 90%; /* 모바일 대응 */
-            max-width: 350px; /* 버튼과 너비 통일 */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            line-height: 1.5;
-        }
-
-        /* 버튼 스타일: 공지 박스 너비와 정확히 일치 */
-        div.stButton {
+        /* 공지 박스: 화면 중앙 정렬 */
+        .notice-container {
             display: flex;
             justify-content: center;
             width: 100%;
+            margin-bottom: 20px;
+        }
+        .notice-box { 
+            background-color: #DBEAFE; 
+            border-left: 5px solid #1E3A8A; 
+            padding: 15px; 
+            border-radius: 10px; 
+            color: #1E3A8A; 
+            font-size: 15px; 
+            width: 95%;
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* [핵심] 버튼들을 가로로 한 줄 배치 */
+        div[data-testid="stHorizontalBlock"] {
+            gap: 5px !important; /* 버튼 사이 간격 최소화 */
         }
         
         div.stButton > button { 
-            width: 90% !important; 
-            max-width: 350px !important; 
-            border-radius: 12px; 
-            height: 4.5rem; 
-            font-size: 18px !important; 
+            width: 100% !important; 
+            border-radius: 10px; 
+            height: 4rem; 
+            /* 모바일에서 글씨가 안 잘리도록 크기 조절 */
+            font-size: clamp(12px, 3vw, 16px) !important; 
             font-weight: 700 !important; 
-            margin-bottom: 12px !important;
-            border: 2.5px solid #1E3A8A;
+            padding: 0px 5px !important;
+            border: 2px solid #1E3A8A;
             background-color: white;
             color: #1E3A8A !important;
-            transition: 0.2s;
+            white-space: normal !important; /* 필요시 버튼 내 줄바꿈 허용 */
+            line-height: 1.2;
         }
         
         div.stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
@@ -113,35 +104,38 @@ st.markdown("""
 
 # [5. 메인 화면 로직]
 if st.session_state.page == "main":
-    # 제목 부분 (1줄 고정)
+    # 제목 (1줄)
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # 전체 중앙 정렬 시작
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-    
-    # 1. 공지사항 (중앙 정렬 및 너비 고정)
+    # 1. 공지사항
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
-        <div class="notice-box">
-            <b style="font-size: 1.1rem;">📢 금일 안전 지시사항</b><br><br>{display_text}
+        <div class="notice-container">
+            <div class="notice-box">
+                <b>📢 금일 안전 지시사항</b><br>{display_text}
+            </div>
         </div>
     ''', unsafe_allow_html=True)
     
-    # 2. 버튼들 (공지 박스 바로 밑으로 수직 정렬)
-    if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"; st.rerun()
-        
-    if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"; st.rerun()
-        
-    if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"; st.rerun()
+    # 2. 버튼 세 개를 한 줄(columns)로 배치
+    # 비율을 동일하게 주어 한 줄에 꽉 차게 만듭니다.
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📝 점검\n작성"):
+            st.session_state.page = "tbm_write"; st.rerun()
+            
+    with col2:
+        if st.button("📊 현황\n확인"):
+            st.session_state.page = "tbm_status"; st.rerun()
+            
+    with col3:
+        if st.button("⚙️ 관리자\n페이지"):
+            st.session_state.page = "tbm_admin"; st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True) # 컨테이너 끝
-
-# [기타 페이지 로직은 기존 소스코드와 동일하게 유지]
+# [기타 페이지 로직 생략]
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로"):
+    if st.button("⬅️ 메인"):
         st.session_state.page = "main"; st.rerun()
     st.subheader("🏗️ TBM 점검 작성")
-    # ... 후략 ...
+    # ...
