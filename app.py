@@ -24,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 기존 데이터 유지] (사용자님의 명단 및 항목 그대로 유지)
+# [3. 기존 데이터 유지]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -36,7 +36,7 @@ team_data = {
     "회전기장": ["박기하", "이성보"], "TM": ["박석희", "오현택", "유상훈"],
     "CM": ["안상복", "김태경"], "대차장": ["임청용", "정호영"],
     "댐퍼/에어스프링": ["정성목", "이태수"], "기초제동1": ["우원진", "연제동", "이창록"],
-    "기초제동2": ["김영일", "정진영", "허재혁"], "윤축/축상장": ["김성수", "이성문"],
+    "기초제동2": ["김영일", "정진영", "허재혁"], "운축/축상장": ["김성수", "이성문"],
     "윤축": ["정승욱", "나용환", "박주현"], "축상": ["박상언", "윤종혁", "방건동", "박준수"],
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
@@ -59,12 +59,12 @@ def get_sheet():
         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
         client = gspread.authorize(creds)
         return client.open_by_key("1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc").get_worksheet(0)
-    except Exception as e:
+    except:
         return None
 
 sheet = get_sheet()
 
-# [5. 네이비 스타일 디자인 유지]
+# [5. 네이비 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -87,7 +87,6 @@ st.markdown("""
 
 # [6. 화면 전환 로직]
 
-# 🏠 메인 화면
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     if st.button("📝 금일 TBM 점검 작성"):
@@ -97,7 +96,6 @@ if st.session_state.page == "main":
     if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
-# 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
@@ -122,78 +120,50 @@ elif st.session_state.page == "tbm_write":
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
-    df_specific = None
     if selected_job and selected_job not in ["", "공통작업"]:
         st.write(f"**⚠️ {selected_job} 추가 점검**")
-        df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
+        st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
-    canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
+    st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
 
-    # [핵심 수정 부분: 저장 로직 보완]
     if st.button("점검 완료 및 저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
-            st.warning("⚠️ 필수 항목(성함, 작업명, 공통점검 전체 체크)을 확인해 주세요.")
+            st.warning("⚠️ 필수 항목을 확인해 주세요.")
         else:
-            with st.spinner('구글 시트에 저장 중...'):
+            with st.spinner('저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
+                    sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                     
-                    # 1. 시트에 데이터 추가 (이 코드가 성공해야 다음으로 넘어감)
-                    sheet.append_row([
-                        now.strftime('%Y-%m-%d'), 
-                        selected_team, 
-                        final_name, 
-                        selected_job, 
-                        "정상", 
-                        now.strftime('%H:%M:%S'), 
-                        "✅ 완료", 
-                        ""
-                    ])
-                    
-                    # 2. 성공 시에만 메시지 출력
-                    st.success("🎉 구글 시트에 저장이 완료되었습니다!")
-                    time.sleep(1.5)
-                    st.session_state.page = "main"
-                    st.rerun()
-                except Exception as e:
-                    # 3. 실패 시 구체적인 이유 출력
-                    st.error(f"❌ 구글 시트 저장 실패: {e}")
+                    # [수정 포인트] 성공 메시지를 변경하고 자동 이동(st.rerun)을 삭제했습니다.
+                    st.success("✅ 점검 완료했습니다!")
+                    st.balloons() # 완료 축하 효과 추가
+                except:
+                    st.error("구글 시트 저장 실패")
 
-# 📊 현황 확인 페이지 유지
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
     try:
-        if sheet:
-            raw_data = sheet.get_all_values()
-            if len(raw_data) > 1:
-                df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-                s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
-                df_f = df_all[df_all['날짜'] == s_date.isoformat()]
-                st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
-        else:
-            st.error("시트 연결이 끊어져 있습니다.")
-    except Exception as e:
-        st.error(f"데이터 불러오기 실패: {e}")
+        raw_data = sheet.get_all_values()
+        if len(raw_data) > 1:
+            df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
+            s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            df_f = df_all[df_all['날짜'] == s_date.isoformat()]
+            st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
+    except: st.error("데이터 불러오기 실패")
 
-# ⚙️ 관리자 페이지 유지
 elif st.session_state.page == "tbm_admin":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
     if not st.session_state.admin_logged_in:
         pw = st.text_input("비밀번호", type="password")
         if st.button("로그인"):
-            if pw == "admin@123": 
-                st.session_state.admin_logged_in = True; st.rerun()
-            else:
-                st.error("비밀번호가 틀렸습니다.")
+            if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
     else:
-        new_notice = st.text_area("공지 수정", st.session_state.safety_notice, height=150)
-        if st.button("저장"): 
-            st.session_state.safety_notice = new_notice
-            st.success("저장됨")
-        if st.button("로그아웃"): 
-            st.session_state.admin_logged_in = False; st.rerun()
+        new_notice = st.text_area("공지 수정", st.session_state.safety_notice)
+        if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("저장됨")
+        if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
