@@ -51,31 +51,31 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# ✅ 작업별 맞춤 점검 항목 (기본 7개 외에 추가되는 내용)
+# ✅ 작업별 추가 점검 항목 정의
 specific_checks = {
     "분해작업": [
-        {"분류": "분해", "점검내용": "부품 낙하 방지 조치 완료", "확인": False},
-        {"분류": "분해", "점검내용": "시스템 내 잔압(유압 등) 제거 확인", "확인": False}
+        {"항목": "분해안전", "점검내용": "부품 낙하 방지 조치 완료", "확인": False},
+        {"항목": "유압/잔압", "점검내용": "시스템 내 잔압 제거 확인", "확인": False}
     ],
     "중량물취급": [
-        {"분류": "중량물", "점검내용": "슬링벨트 및 샤클 상태 점검", "확인": False},
-        {"분류": "중량물", "점검내용": "인양물 하부 출입통제 확인", "확인": False}
+        {"항목": "줄걸이", "점검내용": "슬링벨트 및 샤클 상태 점검", "확인": False},
+        {"항목": "반경통제", "점검내용": "인양물 하부 출입통제 확인", "확인": False}
     ],
     "전기작업": [
-        {"분류": "전기", "점검내용": "절연장갑 및 절연화 착용", "확인": False},
-        {"분류": "전기", "점검내용": "검전기를 통한 정전 상태 확인", "확인": False}
+        {"항목": "절연보호", "점검내용": "절연장갑 및 절연화 착용", "확인": False},
+        {"항목": "검전/접지", "점검내용": "검전기를 통한 정전 상태 확인", "확인": False}
     ],
     "세척작업": [
-        {"분류": "세척", "점검내용": "세척제 MSDS 숙지 및 보호구 착용", "확인": False},
-        {"분류": "세척", "점검내용": "국소배기장치 가동 확인", "확인": False}
+        {"항목": "화학물질", "점검내용": "세척제 MSDS 숙지 및 보호구 착용", "확인": False},
+        {"항목": "환기설비", "점검내용": "국소배기장치 가동 확인", "확인": False}
     ],
     "조립작업": [
-        {"분류": "조립", "점검내용": "지정된 토크값 준수 확인", "확인": False},
-        {"분류": "조립", "점검내용": "구동부 간섭 및 이물질 확인", "확인": False}
+        {"항목": "체결토크", "점검내용": "지정된 토크값 준수 확인", "확인": False},
+        {"항목": "간섭확인", "점검내용": "구동부 간섭 및 이물질 확인", "확인": False}
     ],
     "시험/가동": [
-        {"분류": "시험", "점검내용": "운전/정지 신호수 배치 확인", "확인": False},
-        {"분류": "시험", "점검내용": "비상정지(E-Stop) 버튼 위치 확인", "확인": False}
+        {"항목": "신호체계", "점검내용": "운전/정지 신호수 배치 확인", "확인": False},
+        {"항목": "비상정지", "점검내용": "E-Stop 버튼 위치 확인", "확인": False}
     ]
 }
 
@@ -89,6 +89,7 @@ st.markdown("""
         footer {visibility: hidden !important;}
         .notice-box { background-color: #f0f4f8; border-left: 5px solid #4a7c92; padding: 18px; border-radius: 8px; margin-bottom: 25px; }
         .stButton>button { width: 100%; border-radius: 12px; height: 3.8em; background-color: #d32f2f; color: white; font-weight: bold; }
+        .section-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; margin-top: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -127,33 +128,41 @@ if sheet:
 
         st.markdown("---")
         
-        # ✅ [핵심] 공통 필수 항목 7개 (고정)
-        final_list = [
-            {"분류": "공통", "점검내용": "작업계획 공유 (작업순서 및 역할 분담)", "확인": False},
-            {"분류": "공통", "점검내용": "보호구 착용 (안전모, 안전화, 장갑 등)", "확인": False},
-            {"분류": "공통", "점검내용": "공구 점검 (사용 공구 상태 이상없음)", "확인": False},
-            {"분류": "공통", "점검내용": "작업장 정리 (바닥 미끄럼, 장애물 제거)", "확인": False},
-            {"분류": "공통", "점검내용": "위험구역 설정 (출입통제 및 표지 설치)", "확인": False},
-            {"분류": "공통", "점검내용": "전원 차단 확인 (Lock-out/Tag-out)", "확인": False},
-            {"분류": "공통", "점검내용": "비상대응 확인 (소화기, 비상연락망)", "확인": False}
+        # ✅ [표 1] 공통 안전점검항목 (고정 7개)
+        st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
+        common_list = [
+            {"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
+            {"작업명": "보호구", "점검내용": "안전모, 안전화, 장갑 착용", "확인": False},
+            {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False},
+            {"작업명": "환경정리", "점검내용": "바닥 미끄럼, 장애물 제거", "확인": False},
+            {"작업명": "위험구역", "점검내용": "출입통제 및 안전표지 설치", "확인": False},
+            {"작업명": "전원차단", "점검내용": "LOTO(Lock-out/Tag-out) 적용", "확인": False},
+            {"작업명": "비상대응", "점검내용": "소화기, 비상연락망 확인", "확인": False}
         ]
-        
-        # 작업별 추가 항목이 있다면 뒤에 붙임
-        if selected_job in specific_checks:
-            final_list.extend(specific_checks[selected_job])
-            st.info(f"💡 '{selected_job}' 관련 필수 확인사항이 추가되었습니다.")
+        df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="common_editor")
 
-        # 데이터 편집기 (7개 공통 + @)
-        edited_df = st.data_editor(pd.DataFrame(final_list), hide_index=True, use_container_width=True, key="dynamic_editor")
+        # ✅ [표 2] 작업별 추가 점검항목 (선택 시 나타남)
+        df_specific = None
+        if selected_job in specific_checks:
+            st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검 사항</div>', unsafe_allow_html=True)
+            df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="specific_editor")
+        else:
+            st.info("💡 작업명을 선택하면 하단에 추가 점검사항이 나타납니다.")
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
+            # 검증 로직
+            common_done = df_common["확인"].all()
+            specific_done = df_specific["확인"].all() if df_specific is not None else True
+            
             if not input_name or not selected_job:
                 st.warning("⚠️ 성함과 작업명을 모두 선택해 주세요.")
-            elif not edited_df["확인"].all():
-                st.warning("⚠️ 모든 점검 항목(공통 7개 포함)에 체크해 주세요.")
+            elif not common_done:
+                st.warning("⚠️ 공통 점검 사항을 모두 체크해 주세요.")
+            elif not specific_done:
+                st.warning(f"⚠️ {selected_job} 추가 점검 사항을 모두 체크해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 서명을 완료해 주세요.")
             else:
@@ -165,7 +174,7 @@ if sheet:
                     st.balloons()
                     time.sleep(1.5); st.rerun()
 
-    # [TAB 2, 3 로직]
+    # [TAB 2, 3 로직 생략 - 이전과 동일]
     with tab2:
         st.subheader("📊 현황 검색")
         c_date, c_search = st.columns(2)
