@@ -7,6 +7,9 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 import time
 
+# --- [추가] 한국 시간 설정을 위한 라이브러리 ---
+from datetime import timezone, timedelta
+
 # 1. 앱 설정
 icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=15"
 try:
@@ -127,8 +130,6 @@ if sheet:
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
             df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="ed_spec", column_config=spec_config)
 
-        # ✅ 비고(특이사항) 입력칸 제거 완료
-        
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
 
@@ -142,9 +143,20 @@ if sheet:
             else:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
-                        now = datetime.datetime.now()
-                        # 비고란(remark)은 빈 문자열("")로 저장하여 시트 컬럼 구조 유지
-                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
+                        # ✅ [수정] 서버 시간(UTC)을 한국 시간(KST)으로 변환
+                        kst = timezone(timedelta(hours=9))
+                        now = datetime.datetime.now(kst)
+                        
+                        sheet.append_row([
+                            now.strftime('%Y-%m-%d'), 
+                            selected_team, 
+                            input_name, 
+                            selected_job, 
+                            "정상", 
+                            now.strftime('%H:%M:%S'), 
+                            "✅ 완료", 
+                            ""
+                        ])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
                         st.balloons()
                         time.sleep(2)
@@ -156,7 +168,9 @@ if sheet:
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
-        with c_date: s_date = st.date_input("📅 날짜 선택", datetime.date.today())
+        # 검색 필터의 오늘 날짜도 한국 시간 기준으로 설정
+        kst_today = datetime.datetime.now(timezone(timedelta(hours=9))).date()
+        with c_date: s_date = st.date_input("📅 날짜 선택", kst_today)
         with c_name: s_name = st.text_input("👤 이름 검색")
         
         try:
