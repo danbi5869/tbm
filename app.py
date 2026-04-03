@@ -74,6 +74,7 @@ st.markdown("""
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .stButton > button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important; margin-bottom: 12px; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; border: none !important; height: 3.8rem; }
+        .hint-text { color: #1E3A8A; font-size: 14px; font-weight: 600; margin-top: -15px; margin-bottom: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -101,15 +102,17 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ 개선된 이름 입력 방식 (검색 + 자유입력)
-        # 80명 명단에 '직접 입력' 옵션을 추가하여 목록에 없어도 칠 수 있게 함
-        options = [""] + team_data[selected_team]
-        final_name = st.selectbox("성함 선택 (또는 직접 입력)", options, index=0, placeholder="이름을 입력하세요")
+        # ✅ 핵심 기능: 자유 입력이 가능한 text_input 사용
+        user_input = st.text_input("성함 입력", placeholder="이름을 입력하세요").strip()
         
-        # 만약 목록에 없는 이름을 써야 한다면 text_input으로 전환하는 꼼수 대신 
-        # Streamlit의 최신 selectbox는 타이핑 시 자동 필터링을 지원합니다.
-        # 더 자유로운 입력을 원하시면 아래 주석을 풀고 사용하세요.
-        # final_name = st.text_input("성함 입력", placeholder="이름 입력")
+    # ✅ 실시간 추천 로직: 입력값이 있을 때만 부서 명단에서 찾아서 보여줌
+    final_name = user_input
+    if user_input:
+        matches = [n for n in team_data[selected_team] if user_input in n]
+        if matches:
+            st.markdown(f'<p class="hint-text">💡 명단 추천: {" , ".join(matches)}</p>', unsafe_allow_html=True)
+        else:
+            st.markdown('<p class="hint-text">ℹ️ 명단에 없는 성함입니다. 그대로 입력하셔도 됩니다.</p>', unsafe_allow_html=True)
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
@@ -132,10 +135,11 @@ elif st.session_state.page == "tbm_write":
         elif sheet is None:
             st.error("❌ 시트 연결 실패")
         else:
-            with st.spinner('저장 중...'):
+            with st.spinner('구글 시트 저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
+                    # 입력받은 final_name(타이핑한 이름 그대로)을 시트에 기록
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                     st.success(f"🎉 {final_name}님 저장 완료!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
                 except Exception as e: st.error(f"저장 실패: {e}")
