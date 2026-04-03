@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 네비게이션 버튼 최적화]
+# [5. 스타일 디자인 - 모바일 한 줄 고정 강제 적용]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -75,7 +75,6 @@ st.markdown("""
             padding: 1.2rem 0.5rem; 
             border-radius: 0 0 20px 20px; 
             margin-bottom: 2rem; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
             text-align: center;
         }
         .main-header h1 { 
@@ -83,37 +82,9 @@ st.markdown("""
             font-size: clamp(1rem, 5.5vw, 2.2rem) !important; 
             margin: 0; 
             white-space: nowrap !important;
-            letter-spacing: -1px;
         }
         
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-        
-        .notice-box { 
-            background-color: #DBEAFE; 
-            border-left: 5px solid #1E3A8A; 
-            padding: 15px 20px; 
-            border-radius: 12px; 
-            color: #1E3A8A; 
-            font-size: 16px; 
-            text-align: left;
-            margin-bottom: 20px;
-            width: 95%; 
-            max-width: 420px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        /* 메인 화면 큰 버튼 */
-        div.stButton {
-            display: flex;
-            justify-content: center;
-            width: 100% !important;
-        }
-        
+        /* 메인 버튼 스타일 */
         .stButton>button { 
             width: 95% !important; 
             max-width: 420px !important; 
@@ -125,34 +96,42 @@ st.markdown("""
             border: 2.5px solid #1E3A8A !important;
             background-color: white !important;
             color: #1E3A8A !important;
-            white-space: nowrap !important;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: 0.2s;
         }
-        .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
 
-        /* 상단 네비게이션용 작은 버튼 스타일 */
+        /* [핵심] 상단 네비게이션 버튼 한 줄 고정 CSS */
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important; /* 가로 방향 고정 */
+            flex-wrap: nowrap !important; /* 줄 바꿈 금지 */
+            align-items: center !important;
+            gap: 5px !important;
+        }
+        
+        /* 컬럼 내부 요소 너비 조정 */
+        div[data-testid="column"] {
+            min-width: fit-content !important; 
+            flex: 0 1 auto !important;
+        }
+
+        /* 상단 버튼 전용 스타일 */
         div.stButton > button:has(div:contains("메인으로")),
         div.stButton > button:has(div:contains("현황 확인")) { 
-            height: 2.2rem !important; 
-            min-height: 2.2rem !important; 
+            height: 2.4rem !important; 
+            min-height: 2.4rem !important; 
             font-size: 13px !important; 
             margin: 0 !important; 
             padding: 0 10px !important;
             border-radius: 8px !important;
-            width: auto !important;
+            width: auto !important; /* 너비를 글자에 맞춤 */
             border: 1px solid #cbd5e1 !important;
+            white-space: nowrap !important;
         }
         
         div.stButton > button:has(div:contains("메인으로")) {
             background-color: #E2E8F0 !important; color: #475569 !important;
-        }
-
-        /* 가로 배치 간격 조정 */
-        div[data-testid="stHorizontalBlock"] {
-            gap: 8px !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -160,34 +139,25 @@ st.markdown("""
 # [6. 화면 전환 로직]
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
     
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'''
-        <div class="notice-box">
-            <b>📢 금일 안전 지시사항</b><br>{display_text}
-        </div>
-    ''', unsafe_allow_html=True)
+    st.markdown(f'<div style="background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px; border-radius: 12px; margin-bottom: 20px;"><b>📢 금일 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
     
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
-        
     if st.button("📊 실시간 점검 현황 확인"):
         st.session_state.page = "tbm_status"; st.rerun()
-        
     if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    # 상단 버튼 가로 밀착 배치
-    nav_col1, nav_col2, nav_spacer = st.columns([0.8, 1, 3]) 
-    with nav_col1:
+    # 가로 배치 강제 고정 영역
+    col_nav = st.columns([1, 1, 3]) # 모바일에서 한 줄 유지를 위해 flex-wrap 방지 로직 적용됨
+    with col_nav[0]:
         if st.button("⬅️ 메인으로"):
             st.session_state.page = "main"; st.rerun()
-    with nav_col2:
+    with col_nav[1]:
         if st.button("📊 현황 확인"):
             st.session_state.page = "tbm_status"; st.rerun()
             
@@ -242,10 +212,8 @@ elif st.session_state.page == "tbm_status":
         if len(raw_data) > 1:
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
             col1, col2 = st.columns(2)
-            with col1:
-                s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
-            with col2:
-                s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
+            with col1: s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            with col2: s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
             
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
             if s_name:
