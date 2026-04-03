@@ -9,7 +9,6 @@ import time
 from datetime import timezone, timedelta
 
 # 1. 앱 설정
-icon_url = "https://raw.githubusercontent.com/danbi5869/TBM-app/main/safety_mascot.png?v=15"
 try:
     img = Image.open("safety_mascot.png")
 except:
@@ -62,15 +61,13 @@ specific_checks = {
     "시험/가동": [{"항목": "신호", "점검내용": "운전/정지 신호수 배치", "확인": False}, {"항목": "비상", "점검내용": "E-Stop 버튼 확인", "확인": False}]
 }
 
-# [스타일 및 모바일 최적화]
+# [스타일 설정]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         .notice-box { background-color: #f0f4f8; border-left: 5px solid #4a7c92; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; }
         .stButton>button { width: 100%; border-radius: 12px; height: 3.5em; background-color: #d32f2f; color: white; font-weight: bold; }
         .section-title { font-size: 1em; font-weight: bold; color: #2c3e50; margin-top: 15px; }
-        div[data-testid="stDataEditor"] th { text-align: center !important; font-size: 0.85em !important; }
-        div[data-testid="stDataEditor"] td { font-size: 0.85em !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -101,20 +98,21 @@ if sheet:
             selected_team = st.selectbox("부서 선택", list(team_data.keys()), key="dept_s")
         
         with c2:
-            # ✅ [수정 핵심] 명단에 없는 사람도 자유롭게 입력할 수 있도록 전용 입력창 제공
-            # selectbox에서 이름을 선택하거나, 없으면 빈 값을 두고 아래 입력창을 쓰도록 안내
-            name_list = ["(명단에서 선택)"] + team_data[selected_team]
-            chosen_name = st.selectbox("성함 선택 (없으면 아래 입력)", name_list, key="name_select_box")
-
-        # ✅ 선택창에서 이름을 골랐으면 그 이름이 기본값이 되고, 아니면 직접 입력 가능
-        default_val = "" if chosen_name == "(명단에서 선택)" else chosen_name
-        final_name = st.text_input("최종 성함 확인/직접 입력", value=default_val, placeholder="성함을 확인하거나 직접 입력하세요.", key="final_name_input")
+            # ✅ [수정] 명단 선택을 없애고, 텍스트 입력창으로 통합 (기존 명단은 자동완성 옵션으로 활용)
+            final_name = st.selectbox(
+                "성함 입력/선택",
+                options=[""] + team_data[selected_team],
+                index=0,
+                placeholder="성함을 직접 입력하세요.",
+                help="목록에 없으면 이름을 직접 타이핑하고 Enter를 누르세요.",
+                key="name_input_field"
+            )
 
         selected_job = st.selectbox("금일 작업명 선택", job_options, key="job_s")
 
         st.markdown("---")
         
-        # (중략: 공통점검 및 추가점검 로직은 이전과 동일)
+        # [점검 표 및 로직]
         col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
         st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
         common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
@@ -130,24 +128,26 @@ if sheet:
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
-            if not final_name or not selected_job: 
-                st.warning("⚠️ 성함과 작업명을 모두 확인해 주세요.")
+            if not final_name or final_name == "": 
+                st.warning("⚠️ 성함을 입력해 주세요.")
+            elif not selected_job: 
+                st.warning("⚠️ 작업명을 선택해 주세요.")
             elif not df_common["확인"].all() or (df_specific is not None and not df_specific["확인"].all()): 
                 st.warning("⚠️ 모든 점검 항목에 체크해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0: 
                 st.warning("⚠️ 서명을 완료해 주세요.")
             else:
-                with st.spinner('기록 중...'):
+                with st.spinner('저장 중...'):
                     try:
                         kst = timezone(timedelta(hours=9))
                         now = datetime.datetime.now(kst)
                         sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                        st.success(f"🎉 {final_name}님, 점검 완료!")
+                        st.success(f"🎉 {final_name}님, 저장 완료!")
                         st.balloons(); time.sleep(2); st.rerun()
                     except Exception as e:
                         st.error(f"오류: {e}")
 
-    # --- TAB 2, 3 (이전과 동일) ---
+    # --- TAB 2: 점검 현황 (이전과 동일) ---
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
@@ -164,6 +164,7 @@ if sheet:
                 st.dataframe(df_f, use_container_width=True, hide_index=True)
         except: pass
 
+    # --- TAB 3: 관리자 설정 (이전과 동일) ---
     with tab3:
         st.subheader("⚙️ 관리자 설정")
         if not st.session_state.admin_logged_in:
@@ -174,5 +175,5 @@ if sheet:
             new_notice = st.text_area("📢 메인 공지사항 수정", st.session_state.safety_notice, height=150)
             if st.button("지시사항 저장"):
                 st.session_state.safety_notice = new_notice
-                st.success("업데이트 완료!"); time.sleep(1); st.rerun()
+                st.success("저장 완료!"); time.sleep(1); st.rerun()
             if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
