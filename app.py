@@ -16,34 +16,44 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [세션 상태 관리] 지시사항 및 로그인 상태 유지
+# [세션 상태 관리]
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [UI 디자인]
+# [UI 디자인 - 톤다운 버전]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
+        
+        /* 톤다운된 지시사항 박스 (차분한 블루/그레이) */
         .notice-box {
-            background-color: #fff4f4;
-            border-left: 5px solid #ff4b4b;
-            padding: 15px;
+            background-color: #f0f4f8; /* 연한 블루 그레이 */
+            border-left: 5px solid #4a7c92; /* 차분한 청록색 계열 */
+            padding: 18px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
+        
+        /* 버튼 색상도 약간 차분하게 변경 (너무 밝은 레드 -> 약간 묵직한 레드) */
         .stButton>button {
             width: 100%;
             border-radius: 12px;
             height: 3.8em;
-            background-color: #FF4B4B;
+            background-color: #d32f2f; 
             color: white;
             font-weight: bold;
             font-size: 1.1em;
+            border: none;
+        }
+        
+        /* 탭 폰트 설정 */
+        .stTabs [data-baseweb="tab"] {
+            font-weight: 600;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -82,11 +92,13 @@ if sheet:
     # --- [TAB 1: TBM 점검하기] ---
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
+        
+        # 톤다운된 텍스트 출력
         display_text = st.session_state.safety_notice.replace("\n", "<br>")
         st.markdown(f"""
             <div class="notice-box">
-                <h4 style="margin-top:0; color:#ff4b4b;">📢 안전 지시사항</h4>
-                <p style="margin-bottom:0; font-size:0.95em; line-height:1.6;">{display_text}</p>
+                <h4 style="margin-top:0; color:#2c3e50; border-bottom: 1px solid #d1d8e0; padding-bottom: 8px; margin-bottom: 12px;">📋 안전 지시사항</h4>
+                <p style="margin-bottom:0; font-size:1.0em; line-height:1.7; color: #34495e;">{display_text}</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -100,19 +112,19 @@ if sheet:
         edited_df = st.data_editor(df_init, hide_index=True, use_container_width=True, key="editor")
 
         st.write("✒️ **서명**")
-        canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f0f2f6", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
+        canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
             if not input_name or not job_name:
                 st.warning("⚠️ 성함과 작업명을 먼저 입력해 주세요.")
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
-                st.warning("⚠️ 하단 서명란에 서명을 해주세요.")
+                st.warning("⚠️ 서명을 완료해 주세요.")
             else:
                 with st.spinner('데이터 저장 중...'):
                     now = datetime.datetime.now()
                     new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, "정상" if edited_df[h_check].all() else "조치 필요", now.strftime('%H:%M:%S'), "✅ 완료"]
                     sheet.append_row(new_row)
-                    st.success(f"🎊 점검이 정상적으로 완료되었습니다! ({input_name}님)")
+                    st.success(f"🎊 저장 완료! ({input_name}님)")
                     st.balloons()
                     time.sleep(2)
                     st.rerun()
@@ -145,30 +157,24 @@ if sheet:
     # --- [TAB 3: 관리자 설정] ---
     with tab3:
         st.subheader("⚙️ 관리자 전용 설정")
-        
         if not st.session_state.admin_logged_in:
-            st.info("관리자 인증이 필요합니다.")
             admin_pw = st.text_input("관리자 비밀번호를 입력하세요", type="password")
             if st.button("인증하기"):
-                # ✅ 비밀번호가 admin@123 으로 설정되었습니다.
                 if admin_pw == "admin@123":
                     st.session_state.admin_logged_in = True
-                    st.success("인증 성공! 관리자 메뉴를 활성화합니다.")
                     st.rerun()
                 else:
-                    st.error("비밀번호가 일치하지 않습니다.")
+                    st.error("비밀번호 불일치")
         else:
             st.success("🔓 관리자 모드 활성화 중")
             updated_notice = st.text_area("📢 안전 지시사항 내용 수정", st.session_state.safety_notice, height=200)
-            
-            c_admin1, c_admin2 = st.columns(2)
-            with c_admin1:
-                if st.button("공지사항 업데이트"):
+            c_adm1, c_adm2 = st.columns(2)
+            with c_adm1:
+                if st.button("내용 저장"):
                     st.session_state.safety_notice = updated_notice
-                    st.success("지시사항이 변경되었습니다.")
-                    time.sleep(1)
-                    st.rerun()
-            with c_admin2:
-                if st.button("관리자 로그아웃"):
+                    st.success("수정되었습니다.")
+                    time.sleep(1); st.rerun()
+            with c_adm2:
+                if st.button("로그아웃"):
                     st.session_state.admin_logged_in = False
                     st.rerun()
