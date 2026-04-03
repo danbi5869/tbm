@@ -23,7 +23,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 데이터 설정 (기존 데이터 동일)]
+# [3. 데이터 설정]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -54,7 +54,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 버튼 정렬 최적화]
+# [5. 스타일 디자인 - 공지 박스 크기 자동 조절 및 중앙 정렬]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -64,7 +64,27 @@ st.markdown("""
         
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; }
 
-        /* 버튼 스타일 - 너비를 100%로 채워 컬럼 안을 꽉 채우게 함 */
+        /* 공지사항 박스 레이아웃: 글자 길이에 맞게 조절 및 중앙 정렬 */
+        .notice-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .notice-box { 
+            background-color: #DBEAFE; 
+            border-left: 5px solid #1E3A8A; 
+            padding: 15px 25px; 
+            border-radius: 10px; 
+            color: #1E3A8A; 
+            font-size: 17px; 
+            display: inline-block; /* 핵심: 내용물 크기에 맞춤 */
+            text-align: left;
+            max-width: 90%; /* 화면 이탈 방지 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* 버튼 스타일 */
         div.stButton > button { 
             width: 100% !important; 
             border-radius: 12px; 
@@ -77,17 +97,6 @@ st.markdown("""
             color: #1E3A8A !important;
         }
         div.stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
-
-        /* 공지사항 박스 */
-        .notice-box { 
-            background-color: #DBEAFE; 
-            border-left: 5px solid #1E3A8A; 
-            padding: 20px; 
-            border-radius: 10px; 
-            color: #1E3A8A; 
-            font-size: 17px; 
-            margin-bottom: 25px;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -95,14 +104,21 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # 1. 공지사항 (전체 너비 사용하되 내부 여백으로 조절)
+    # 1. 공지사항 (글자 길이에 맞게 크기 조절 + 중앙 정렬)
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'<div class="notice-box"><b>📢 금일 안전 지시사항</b><br><br>{display_text}</div>', unsafe_allow_html=True)
+    st.markdown(f'''
+        <div class="notice-container">
+            <div class="notice-box">
+                <b>📢 금일 안전 지시사항</b><br>{display_text}
+            </div>
+        </div>
+    ''', unsafe_allow_html=True)
     
-    # 2. 버튼 배치 (좌측 여백 1 : 버튼 2 : 우측 여백 1 비율로 버튼을 정중앙 배치)
-    left_space, main_button_area, right_space = st.columns([1, 2, 1])
+    # 2. 버튼 배치 (가운데 정렬을 위한 컬럼 구조)
+    # 버튼이 너무 얇아보이지 않도록 비율을 0.15:0.7:0.15 정도로 조정했습니다.
+    left, center, right = st.columns([0.15, 0.7, 0.15])
     
-    with main_button_area:
+    with center:
         if st.button("📝 금일 TBM 점검 작성"):
             st.session_state.page = "tbm_write"
             st.rerun()
@@ -115,9 +131,9 @@ if st.session_state.page == "main":
             st.session_state.page = "tbm_admin"
             st.rerun()
 
-# [기타 페이지 로직 생략 - 메인 화면 정렬에 집중]
+# [페이지 전환 로직 - 기존과 동일]
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
     st.subheader("🏗️ TBM 점검 작성")
-    # ... (기존과 동일한 작성 페이지 코드)
+    # ... 후략 ...
