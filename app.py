@@ -62,13 +62,27 @@ specific_checks = {
 
 job_options = ["", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
 
-# [UI 스타일 정의 - 가운데 정렬 강화]
+# ✅ [핵심 수정] 표의 첫 행(헤더)을 강제로 가운데 정렬하는 CSS
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         .notice-box { background-color: #f0f4f8; border-left: 5px solid #4a7c92; padding: 18px; border-radius: 8px; margin-bottom: 25px; }
         .stButton>button { width: 100%; border-radius: 12px; height: 3.8em; background-color: #d32f2f; color: white; font-weight: bold; }
-        .section-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; margin-top: 20px; text-align: center; }
+        .section-title { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; margin-top: 20px; }
+        
+        /* 표 헤더(첫 행) 가운데 정렬 CSS */
+        div[data-testid="stTable"] th {
+            text-align: center !important;
+            background-color: #f8f9fa;
+        }
+        div[data-testid="stDataEditor"] th {
+            text-align: center !important;
+        }
+        /* 체크박스 열 등 특정 열 헤더도 가운데로 */
+        .st-ae {
+            display: flex;
+            justify-content: center;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -91,7 +105,7 @@ if sheet:
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
         display_text = st.session_state.safety_notice.replace("\n", "<br>")
-        st.markdown(f'<div class="notice-box"><h4 style="margin-top:0; color:#2c3e50; text-align:center;">📋 안전 지시사항</h4><p style="text-align:center;">{display_text}</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="notice-box"><h4 style="margin-top:0; color:#2c3e50;">📋 안전 지시사항</h4><p>{display_text}</p></div>', unsafe_allow_html=True)
         
         c1, c2 = st.columns(2)
         with c1: selected_team = st.selectbox("소속 부서", list(team_data.keys()), key="dept_sel")
@@ -103,7 +117,7 @@ if sheet:
 
         st.markdown("---")
         
-        # ✅ [표 1] 공통 안전점검항목 (가운데 정렬 설정 추가)
+        # ✅ [표 1] 공통 안전점검 사항
         st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
         common_list = [
             {"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
@@ -115,25 +129,34 @@ if sheet:
             {"작업명": "비상대응", "점검내용": "소화기, 비상연락망 확인", "확인": False}
         ]
         
-        # 정렬 설정을 위한 column_config
-        center_config = {
-            "작업명": st.column_config.TextColumn("작업명", width="small", help=None, validate=None),
-            "점검내용": st.column_config.TextColumn("점검내용", width="large"),
-            "확인": st.column_config.CheckboxColumn("확인", width="small")
-        }
-
-        df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="common_editor", column_config=center_config)
+        # column_config를 통해 헤더의 제목을 다시 한 번 정의 (CSS와 연동)
+        df_common = st.data_editor(
+            pd.DataFrame(common_list), 
+            hide_index=True, 
+            use_container_width=True, 
+            key="common_editor",
+            column_config={
+                "작업명": st.column_config.TextColumn("작업명"),
+                "점검내용": st.column_config.TextColumn("점검내용"),
+                "확인": st.column_config.CheckboxColumn("확인")
+            }
+        )
 
         # ✅ [표 2] 추가 점검항목
         df_specific = None
         if selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검 사항</div>', unsafe_allow_html=True)
-            specific_config = {
-                "항목": st.column_config.TextColumn("항목", width="small"),
-                "점검내용": st.column_config.TextColumn("점검내용", width="large"),
-                "확인": st.column_config.CheckboxColumn("확인", width="small")
-            }
-            df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="specific_editor", column_config=specific_config)
+            df_specific = st.data_editor(
+                pd.DataFrame(specific_checks[selected_job]), 
+                hide_index=True, 
+                use_container_width=True, 
+                key="specific_editor",
+                column_config={
+                    "항목": st.column_config.TextColumn("항목"),
+                    "점검내용": st.column_config.TextColumn("점검내용"),
+                    "확인": st.column_config.CheckboxColumn("확인")
+                }
+            )
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
@@ -148,3 +171,19 @@ if sheet:
             else:
                 with st.spinner('저장 중...'):
                     now = datetime.datetime.now()
+                    sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"])
+                    st.success("🎊 저장 완료!"); st.balloons(); time.sleep(1.5); st.rerun()
+
+    # [TAB 2, 3 로직 생략]
+    with tab2:
+        st.subheader("📊 현황 검색")
+        c_date, c_search = st.columns(2)
+        with c_date: s_date = st.date_input("📅 날짜", datetime.date.today())
+        with c_search: name_query = st.text_input("👤 이름 검색")
+        if name_query:
+            try:
+                raw_data = sheet.get_all_values()
+                all_df = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
+                df_f = all_df[(all_df['날짜'] == s_date.isoformat()) & (all_df.iloc[:, 2].str.contains(name_query, na=False))]
+                st.dataframe(df_f, hide_index=True)
+            except: st.error("조회 실패")
