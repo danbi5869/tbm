@@ -16,25 +16,49 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
+# [비밀번호 및 지시사항 세션 관리]
+if "admin_logged_in" not in st.session_state:
+    st.session_state.admin_logged_in = False
+if "safety_notice" not in st.session_state:
+    st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
+
+# --- [사이드바: 관리자 로그인] ---
+with st.sidebar:
+    st.header("⚙️ 관리자 설정")
+    if not st.session_state.admin_logged_in:
+        password = st.text_input("관리자 비밀번호", type="password")
+        if st.button("로그인"):
+            if password == "1234":  # 👈 여기에 원하시는 비밀번호를 입력하세요!
+                st.session_state.admin_logged_in = True
+                st.success("관리자로 로그인되었습니다.")
+                st.rerun()
+            else:
+                st.error("비밀번호가 틀렸습니다.")
+    else:
+        st.write("✅ 관리자 모드 활성화 중")
+        # 관리자만 수정 가능한 입력창
+        new_notice = st.text_area("📢 안전 지시사항 수정", st.session_state.safety_notice, height=150)
+        if st.button("내용 업데이트"):
+            st.session_state.safety_notice = new_notice
+            st.success("지시사항이 업데이트되었습니다.")
+            st.rerun()
+        
+        if st.button("로그아웃"):
+            st.session_state.admin_logged_in = False
+            st.rerun()
+
 # [UI 디자인]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
-        /* 지시사항 박스 스타일 */
         .notice-box {
             background-color: #fff4f4;
             border-left: 5px solid #ff4b4b;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
-        }
-        div[data-testid="stDataFrame"] th {
-            font-weight: 900 !important;
-            color: #000 !important;
-            background-color: #f0f2f6 !important;
-            text-align: center !important;
         }
         .stButton>button {
             width: 100%;
@@ -43,7 +67,6 @@ st.markdown("""
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
-            font-size: 1.3em;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -85,16 +108,13 @@ if sheet:
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
 
-        # ✅ [추가] 오늘 작업 지시사항/공지사항 칸
-        # 관리자님께서 아래 내용을 수정하시면 모든 작업자 앱에 즉시 반영됩니다.
+        # ✅ [수정된 지시사항 박스]
+        # 줄바꿈(\n)을 HTML 태그(<br>)로 바꿔서 보여줍니다.
+        display_text = st.session_state.safety_notice.replace("\n", "<br>")
         st.markdown(f"""
             <div class="notice-box">
-                <h4 style="margin-top:0; color:#ff4b4b;">📢 오늘의 안전 지시사항</h4>
-                <p style="margin-bottom:0; font-size:0.95em; line-height:1.6;">
-                    1. 환절기 개인 건강관리 철저 (충분한 휴식 권장)<br>
-                    2. 작업장 내 이동 시 지정된 통로 엄수<br>
-                    3. 중량물 취급 시 2인 1조 작업 원칙 준수
-                </p>
+                <h4 style="margin-top:0; color:#ff4b4b;">📢 안전 지시사항</h4>
+                <p style="margin-bottom:0; font-size:0.95em; line-height:1.6;">{display_text}</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -152,8 +172,7 @@ if sheet:
         st.subheader("📊 점검 현황 조회")
         
         col_date, col_name = st.columns(2)
-        with col_date:
-            search_date = st.date_input("📅 날짜 선택", datetime.date.today())
+        with col_date: search_date = st.date_input("📅 날짜 선택", datetime.date.today())
         
         search_date_str = search_date.isoformat()
         
@@ -162,37 +181,20 @@ if sheet:
             if len(raw_data) > 1:
                 header = [h.strip() for h in raw_data[0]]
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
-                
-                if '서명' in all_df.columns:
-                    all_df = all_df.rename(columns={'서명': '서명확인'})
-                if '성함' in all_df.columns:
-                    all_df = all_df.rename(columns={'성함': '이름'})
+                if '서명' in all_df.columns: all_df = all_df.rename(columns={'서명': '서명확인'})
+                if '성함' in all_df.columns: all_df = all_df.rename(columns={'성함': '이름'})
 
                 if '날짜' in all_df.columns:
                     date_filtered_df = all_df[all_df['날짜'] == search_date_str]
-                    
                     if not date_filtered_df.empty:
                         names_in_date = sorted(date_filtered_df['이름'].unique().tolist())
-                        with col_name:
-                            selected_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names_in_date)
-                        
-                        if selected_name != "전체 보기":
-                            final_df = date_filtered_df[date_filtered_df['이름'] == selected_name]
-                        else:
-                            final_df = date_filtered_df
-                        
+                        with col_name: selected_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names_in_date)
+                        final_df = date_filtered_df if selected_name == "전체 보기" else date_filtered_df[date_filtered_df['이름'] == selected_name]
                         st.metric(f"{search_date_str} 점검 인원", f"{len(final_df)}명")
-                        
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
                         available_cols = [c for c in display_cols if c in final_df.columns]
                         st.dataframe(final_df[available_cols], use_container_width=True, hide_index=True)
                     else:
-                        with col_name:
-                            st.selectbox("👤 이름별 조회", ["기록 없음"], disabled=True)
                         st.info(f"{search_date_str}에 완료된 점검 기록이 없습니다.")
-                else:
-                    st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
-            else:
-                st.warning("저장된 데이터가 없습니다.")
         except Exception as e:
             st.error(f"현황판 로딩 중 오류: {e}")
