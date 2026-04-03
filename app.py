@@ -7,6 +7,7 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 import time
 from datetime import timezone, timedelta
+import streamlit.components.v1 as components
 
 # [1. 앱 기본 설정]
 try:
@@ -64,7 +65,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 설정]
+# [5. 디자인 설정]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -101,24 +102,25 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ 통합 성함 입력창 (선택 + 직접 타이핑)
-        # selectbox의 'label_visibility'와 'placeholder'를 활용한 하이브리드 방식
-        # 사용자가 타이핑하면 필터링되고, 목록에 없어도 엔터를 치면 입력된 것으로 간주되게 함
-        name_options = team_data[selected_team]
-        final_name = st.selectbox(
-            "성함 입력/선택",
-            options=name_options,
-            index=None,
-            placeholder="성함을 입력하세요",
-        )
+        # ✅ [완전 통합] 입력창 하나로 끝내는 HTML5 Datalist 구현
+        # 브라우저 기능을 활용해 입력창 하나에서 추천과 자유 타이핑을 모두 지원합니다.
+        names = team_data[selected_team]
+        datalist_options = "".join([f'<option value="{name}">' for name in names])
         
-        # 목록에 없는 이름을 쳤을 때를 대비한 자유 입력 보완
-        # (Streamlit의 selectbox는 타이핑 후 엔터를 치면 선택되지만, 목록 외 값은 기본적으로 차단됨)
-        # 이 한계를 넘기 위해 아래 위젯 하나를 더 쓰는 대신, 
-        # 사용자가 엔터를 쳤을 때 그 값을 강제로 가져오는 로직을 덧붙였습니다.
-        if final_name is None:
-             # 목록에 없는 경우를 대비한 보험용 입력창 (하지만 시각적으로는 매우 작게 처리)
-             final_name = st.text_input("목록에 없다면 직접 입력 (입력 후 엔터)", key="manual_name").strip()
+        # HTML 코드를 삽입하여 보이지 않는 추천 리스트를 만듭니다.
+        components.html(f"""
+            <datalist id="team_names">
+                {datalist_options}
+            </datalist>
+            <script>
+                var input = window.parent.document.querySelectorAll('input[aria-label="성함 입력"]')[0];
+                if (input) {{
+                    input.setAttribute('list', 'team_names');
+                }}
+            </script>
+        """, height=0)
+        
+        final_name = st.text_input("성함 입력", placeholder="성함을 입력하세요", key="name_input").strip()
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
@@ -127,7 +129,7 @@ elif st.session_state.page == "tbm_write":
     common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
-    df_specific = None
+    # 작업별 추가 점검 (선택 시에만 노출)
     if selected_job and selected_job not in ["", "공통작업"]:
         st.write(f"**⚠️ {selected_job} 추가 점검**")
         df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
@@ -149,6 +151,7 @@ elif st.session_state.page == "tbm_write":
                     st.success(f"🎉 {final_name}님 저장 완료!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
                 except Exception as e: st.error(f"저장 실패: {e}")
 
+# [이후 관리자/현황 페이지 생략 - 기존과 동일]
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"
@@ -169,4 +172,10 @@ elif st.session_state.page == "tbm_admin":
         st.session_state.page = "main"
         st.rerun()
     if not st.session_state.admin_logged_in:
-        pw
+        pw = st.text_input("비밀번호", type="password")
+        if st.button("로그인"):
+            if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
+    else:
+        new_notice = st.text_area("공지 수정", st.session_state.safety_notice)
+        if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("저장됨")
+        if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
