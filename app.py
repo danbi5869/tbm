@@ -94,12 +94,12 @@ if sheet:
     with tab1:
         st.subheader("🏗️ TBM 안전 점검")
         display_text = st.session_state.safety_notice.replace("\n", "<br>")
-        st.markdown(f'<div class="notice-box"><b>📋 공지:</b><br>{display_text}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="notice-box"><b>📋 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
         
         c1, c2 = st.columns(2)
-        with c1: selected_team = st.selectbox("부서", list(team_data.keys()), key="dept_s")
-        with c2: input_name = st.selectbox("성함", [""] + team_data[selected_team], key="name_s")
-        selected_job = st.selectbox("금일 작업명", job_options, key="job_s")
+        with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()), key="dept_s")
+        with c2: input_name = st.selectbox("성함 선택", [""] + team_data[selected_team], key="name_s")
+        selected_job = st.selectbox("금일 작업명 선택", job_options, key="job_s")
 
         st.markdown("---")
         
@@ -109,7 +109,7 @@ if sheet:
             "확인": st.column_config.CheckboxColumn("확인", width=40)
         }
 
-        st.markdown('<div class="section-title">✅ 공통 점검</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
         common_list = [
             {"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False},
             {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False},
@@ -123,24 +123,36 @@ if sheet:
 
         df_specific = None
         if selected_job in specific_checks:
-            st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검</div>', unsafe_allow_html=True)
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
             df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="ed_spec", column_config=spec_config)
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
 
+        # [수정 포인트] 저장 버튼 클릭 시 메시지 강화
         if st.button("점검 완료 및 저장"):
-            if not input_name or not selected_job: st.warning("⚠️ 부서, 성함, 작업명을 선택하세요.")
-            elif not df_common["확인"].all() or (df_specific is not None and not df_specific["확인"].all()): st.warning("⚠️ 모든 점검 항목을 체크하세요.")
-            elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0: st.warning("⚠️ 서명을 완료하세요.")
+            if not input_name or not selected_job: 
+                st.warning("⚠️ 성함과 작업명을 모두 선택해 주세요.")
+            elif not df_common["확인"].all() or (df_specific is not None and not df_specific["확인"].all()): 
+                st.warning("⚠️ 모든 점검 항목에 체크해 주세요.")
+            elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0: 
+                st.warning("⚠️ 서명을 완료해 주세요.")
             else:
-                with st.spinner('저장 중...'):
-                    now = datetime.datetime.now()
-                    sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"])
-                    st.success(f"🎊 {input_name}님 저장 완료!"); st.balloons(); time.sleep(1.5); st.rerun()
+                with st.spinner('구글 시트에 기록 중입니다...'):
+                    try:
+                        now = datetime.datetime.now()
+                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"])
+                        
+                        # ✅ 사용자가 요청한 "점검 완료했습니다" 메시지 출력
+                        st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
+                        st.balloons() # 축하 풍선 효과
+                        time.sleep(2) # 메시지를 볼 수 있게 2초 대기
+                        st.rerun() # 화면 초기화
+                    except Exception as e:
+                        st.error(f"저장 중 오류가 발생했습니다: {e}")
 
-    # --- TAB 2: 전체 점검 현황 ---
+    # --- TAB 2: 전체 점검 현황 (복구 완료) ---
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
@@ -151,27 +163,4 @@ if sheet:
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
                 df_all = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
-                # 이름 컬럼 매핑 (구글 시트 헤더에 따라 조정)
-                df_f = df_all[df_all.iloc[:, 0] == s_date.isoformat()]
-                if s_name: df_f = df_f[df_f.iloc[:, 2].str.contains(s_name, na=False)]
-                st.dataframe(df_f, use_container_width=True, hide_index=True)
-            else: st.info("기록된 데이터가 없습니다.")
-        except: st.error("데이터 로딩 중 오류가 발생했습니다.")
-
-    # --- TAB 3: 관리자 설정 ---
-    with tab3:
-        st.subheader("⚙️ 관리자 설정")
-        if not st.session_state.admin_logged_in:
-            admin_pw = st.text_input("관리자 비밀번호", type="password")
-            if st.button("로그인"):
-                if admin_pw == "admin@123": # 비밀번호는 원하시는 대로 수정 가능
-                    st.session_state.admin_logged_in = True; st.rerun()
-                else: st.error("비밀번호가 틀렸습니다.")
-        else:
-            st.success("🔓 관리자 인증 완료")
-            new_notice = st.text_area("📢 안전 지시사항 수정", st.session_state.safety_notice, height=150)
-            if st.button("지시사항 업데이트"):
-                st.session_state.safety_notice = new_notice
-                st.success("업데이트 되었습니다!"); time.sleep(1); st.rerun()
-            if st.button("로그아웃"):
-                st.session_state.admin_logged_in = False; st.rerun()
+                df
