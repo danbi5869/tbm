@@ -24,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 기존 데이터 유지]
+# [3. 기존 데이터 유지] (80명 명단)
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -59,82 +59,68 @@ def get_sheet():
         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
         client = gspread.authorize(creds)
         return client.open_by_key("1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc").get_worksheet(0)
-    except:
-        return None
+    except: return None
 
 sheet = get_sheet()
 
-# [5. 🌃 Modern Dark Mode 핵심 디자인 CSS]
+# [5. ✨ 소프트 미니멀 스타일 CSS 디자인]
 st.markdown("""
     <style>
-        /* 기본 배경: 짙은 다크 네이비 */
-        .stApp { background-color: #0c1a32; color: #ffffff; }
+        /* 배경: 눈이 편안한 연한 그레이 블루 */
+        .stApp { background-color: #f8fafc; color: #1e293b; }
         header { visibility: hidden !important; }
         
-        /* 메인 헤더: 그라데이션 바 */
-        .main-header { 
-            background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
-            padding: 2.5rem 0; border-radius: 0 0 30px 30px; 
-            margin-bottom: 2rem; box-shadow: 0 10px 20px rgba(0,0,0,0.3); 
-        }
-        .main-header h1 { color: #38bdf8 !important; text-align: center; font-size: 2.2rem; margin: 0; font-weight: 800; }
-        
-        /* 카드형 컨테이너: 밝은 네이비 레이어 */
+        /* 메인 카드 컨테이너 */
         .block-container { 
-            background-color: #172554; 
+            background-color: #ffffff; 
             padding: 2rem !important; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
-            border: 1px solid #1e3a8a;
+            border-radius: 25px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+            margin-top: 1.5rem;
         }
         
-        /* 메인 버튼 스타일: 네온 블루 테두리와 입체감 */
+        /* 상단 헤더 섹션 */
+        .main-header { 
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            padding: 2rem; border-radius: 20px; 
+            margin-bottom: 2rem; text-align: center;
+            border: 1px solid #bae6fd;
+        }
+        .main-header h1 { color: #0369a1 !important; font-size: 1.8rem; font-weight: 800; margin: 0; }
+        
+        /* 버튼 스타일: 둥글고 깨끗한 화이트 & 블루 테두리 */
         .stButton>button { 
-            width: 100%; border-radius: 15px; height: 5rem; 
-            font-size: 20px !important; font-weight: 700 !important; 
-            transition: all 0.3s; 
-            background-color: #1e3a8a; 
-            color: #ffffff !important;
-            border: 2px solid #38bdf8 !important;
-            box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2);
+            width: 100%; border-radius: 16px; height: 4.8rem; 
+            font-size: 18px !important; font-weight: 700 !important; 
+            transition: all 0.2s; 
+            background-color: #ffffff; 
+            color: #0284c7 !important;
+            border: 1.5px solid #e2e8f0 !important;
         }
         .stButton>button:hover { 
-            background-color: #38bdf8 !important; 
-            color: #0c1a32 !important; 
-            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.5) !important;
-            transform: translateY(-3px);
+            background-color: #f0f9ff !important; 
+            border-color: #38bdf8 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1);
         }
         
-        /* 보조 버튼 (메인으로) */
-        div.stButton > button:has(div:contains("메인으로")) { 
-            background-color: #334155 !important; 
-            color: #cbd5e1 !important; 
-            height: 3rem; border: none !important; 
-            font-size: 16px !important;
+        /* 특수 버튼 색상 */
+        div.stButton > button:has(div:contains("저장하기")) {
+            background-color: #0284c7 !important; color: white !important; border: none !important;
+        }
+        div.stButton > button:has(div:contains("돌아가기")) {
+            background-color: #f1f5f9 !important; color: #475569 !important; height: 2.8rem; border: none !important; font-size: 14px !important;
         }
         
-        /* 강조 버튼 (저장하기) */
-        div.stButton > button:has(div:contains("저장하기")) { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; 
-            color: white !important; 
-            height: 4rem; border: none !important; 
-        }
-        
-        /* 공지사항 박스: 정보성이 강한 블루 스타일 */
+        /* 공지사항 박스 */
         .notice-box { 
-            background-color: #1e3a8a; 
-            border-left: 8px solid #38bdf8; 
-            padding: 20px; border-radius: 12px; 
-            margin-bottom: 25px; color: #e2e8f0; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background-color: #f0f9ff; border-left: 6px solid #38bdf8; 
+            padding: 15px; border-radius: 12px; margin-bottom: 20px; color: #0c4a6e;
         }
 
-        /* 입력창 및 셀렉트박스 다크모드 최적화 */
+        /* 입력창 라운딩 처리 */
         .stTextInput>div>div>input, .stSelectbox>div>div>div {
-            background-color: #0c1a32 !important;
-            color: white !important;
-            border: 1px solid #334155 !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important; border: 1px solid #e2e8f0 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -143,92 +129,84 @@ st.markdown("""
 
 # 🏠 메인 화면
 if st.session_state.page == "main":
-    st.markdown('<div class="main-header"><h1>⛑️ TBM SAFETY GATE</h1></div>', unsafe_allow_html=True)
-    st.write("")
+    st.markdown('<div class="main-header"><h1>⛑️ TBM 스마트 체크리스트</h1></div>', unsafe_allow_html=True)
+    st.write(" ")
     if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"
-        st.rerun()
-    st.write("")
+        st.session_state.page = "tbm_write"; st.rerun()
+    st.write(" ")
     if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"
-        st.rerun()
-    st.write("")
+        st.session_state.page = "tbm_status"; st.rerun()
+    st.write(" ")
     if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"
-        st.rerun()
+        st.session_state.page = "tbm_admin"; st.rerun()
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
+        st.session_state.page = "main"; st.rerun()
         
-    st.markdown('<div style="height:20px;"></div>', unsafe_allow_html=True)
-    st.subheader("🏗️ TBM 점검 작성")
+    st.subheader("🏗️ 점검표 작성")
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'<div class="notice-box"><b><span style="color:#38bdf8; font-size:1.2rem;">📋 금일 안전 지시사항</span></b><br><div style="margin-top:10px;">{display_text}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="notice-box"><b>📋 오늘의 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
-    with c1: selected_team = st.selectbox("🏗️ 부서 선택", list(team_data.keys()))
+    with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2: 
-        final_name = st.text_input("👤 성함 입력", placeholder="성함 입력").strip()
+        final_name = st.text_input("성함 입력", placeholder="성함 입력").strip()
         if final_name:
             matches = [n for n in team_data[selected_team] if final_name in n]
-            if matches: st.caption(f"✅ 명단 확인됨: {', '.join(matches)}")
+            if matches: st.caption(f"✅ 확인됨: {', '.join(matches)}")
 
-    selected_job = st.selectbox("🛠️ 금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
+    selected_job = st.selectbox("작업 분류", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
-    st.markdown("---")
-    st.write("**✅ 공통 안전점검 사항**")
-    col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
-    common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
+    st.write("**✅ 안전점검 항목**")
+    col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("상세내용", width=220), "확인": st.column_config.CheckboxColumn("V", width=40)}
+    common_list = [{"작업명": "계획", "점검내용": "역할 분담 및 작업 순서 확인", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용 확인", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상 없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "전원", "점검내용": "전원 차단 및 LOTO 확인", "확인": False}]
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
     if selected_job and selected_job not in ["", "공통작업"]:
-        st.write(f"**⚠️ {selected_job} 추가 점검**")
-        df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
+        st.write(f"**⚠️ {selected_job} 추가 사항**")
+        st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
-    st.write("**✒️ 최종 확인 서명**")
-    canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
+    st.write("**✒️ 최종 서명**")
+    canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8fafc", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
 
-    if st.button("🚀 점검 완료 및 저장하기"):
+    if st.button("💾 점검 완료 및 저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
-            st.warning("⚠️ 모든 점검 항목과 성함을 확인해 주세요.")
+            st.warning("⚠️ 필수 항목과 점검 사항을 확인하세요.")
         else:
-            with st.spinner('전송 중...'):
+            with st.spinner('저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                    st.success("🎉 점검표가 성공적으로 저장되었습니다!"); time.sleep(1.2); st.session_state.page = "main"; st.rerun()
+                    st.success("🎉 저장되었습니다!"); time.sleep(1); st.session_state.page = "main"; st.rerun()
                 except: st.error("구글 시트 저장 실패")
 
 # 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
     if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
+        st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
     try:
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            s_date = st.date_input("📅 날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            s_date = st.date_input("날짜 조회", datetime.datetime.now(timezone(timedelta(hours=9))).date())
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
             st.dataframe(df_f.iloc[::-1], use_container_width=True, hide_index=True)
-    except: st.error("데이터 불러오기 실패")
+    except: st.error("데이터 로드 실패")
 
 # ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
     if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
+        st.session_state.page = "main"; st.rerun()
     if not st.session_state.admin_logged_in:
-        pw = st.text_input("🔐 관리자 암호", type="password")
+        pw = st.text_input("비밀번호", type="password")
         if st.button("로그인"):
             if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
     else:
-        new_notice = st.text_area("📢 안전 지시사항 수정", st.session_state.safety_notice, height=150)
-        if st.button("업데이트"): st.session_state.safety_notice = new_notice; st.success("공지사항이 변경되었습니다.")
-        if st.button("🔓 로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
+        new_notice = st.text_area("📢 공지사항 수정", st.session_state.safety_notice, height=150)
+        if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("수정 완료")
+        if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
