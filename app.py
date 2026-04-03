@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 절대적 가운데 정렬]
+# [5. 스타일 디자인 - 버튼 자체를 중앙에 정렬하기 위한 보완]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -72,32 +72,21 @@ st.markdown("""
         .main-header { background-color: #1E3A8A; padding: 1.5rem 0; border-radius: 0 0 20px 20px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2.2rem; margin: 0; }
         
-        /* 전체 컨테이너를 중앙으로 정렬 */
         .block-container { 
             background-color: #ffffff; 
             padding: 2rem !important; 
             border-radius: 15px; 
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* 가로 중앙 */
         }
         
-        /* 버튼 영역 정렬 */
-        .stButton {
-            display: flex;
-            justify-content: center;
-            width: 100% !important;
-        }
-        
+        /* 버튼 스타일 */
         .stButton > button { 
-            width: 320px !important; /* 고정 너비로 중앙 밸런스 유지 */
+            width: 100% !important; 
             border-radius: 12px; 
             height: 4.8rem; 
             font-size: 19px !important; 
             font-weight: 700 !important; 
-            margin: 10px auto !important; 
-            display: block !important;
+            margin-bottom: 10px !important;
         }
         
         div.stButton > button:has(div:contains("TBM 점검 작성")),
@@ -108,7 +97,7 @@ st.markdown("""
         
         .stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
         
-        /* 공지 박스 중앙 정렬 */
+        /* 공지 박스 레이아웃 */
         .notice-wrapper {
             display: flex;
             justify-content: center;
@@ -124,7 +113,6 @@ st.markdown("""
             font-size: 17px; 
             text-align: left;
             width: auto;
-            max-width: 90%;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -144,19 +132,22 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    # 버튼 (st.columns를 제거하고 CSS flex로만 제어하여 치우침 방지)
-    if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"; st.rerun()
-        
-    if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"; st.rerun()
-        
-    if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"; st.rerun()
+    # [수정] 컬럼을 생성하여 버튼 자체를 화면 중앙으로 이동
+    # [좌측 여백, 실제 버튼 너비, 우측 여백] 비율 조정
+    col1, col2, col3 = st.columns([0.2, 0.6, 0.2]) 
+    
+    with col2:
+        if st.button("📝 금일 TBM 점검 작성"):
+            st.session_state.page = "tbm_write"; st.rerun()
+            
+        if st.button("📊 실시간 점검 현황 확인"):
+            st.session_state.page = "tbm_status"; st.rerun()
+            
+        if st.button("⚙️ 시스템 관리자 페이지"):
+            st.session_state.page = "tbm_admin"; st.rerun()
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    # 작성 페이지에서는 버튼이 중앙일 필요가 없으므로 일반 배치
     if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
         
