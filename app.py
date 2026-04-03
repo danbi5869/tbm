@@ -60,7 +60,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 디자인 설정]
+# [5. 스타일 설정]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -87,18 +87,18 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ [통합] 성함 입력 및 선택 (하나로 합침)
-        options = ["명단에 없음(직접입력)"] + team_data[selected_team]
-        choice = st.selectbox("성함 선택", options, index=0)
+        # ✅ [통합] 성함 입력: 명단에 없으면 직접 타이핑 창 노출
+        options = ["명단에서 선택"] + team_data[selected_team]
+        choice = st.selectbox("성함 선택/검색", options, index=0)
         
-        if choice == "명단에 없음(직접입력)":
-            final_name = st.text_input("성함 직접 입력", key="manual_name").strip()
+        if choice == "명단에서 선택":
+            final_name = st.text_input("성함 직접 입력", placeholder="이름을 입력하세요", key="manual_name").strip()
         else:
             final_name = choice
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
     
-    # ✅ [복구] 공통 안전점검 사항 7가지
+    # ✅ [완벽 복구] 공통 안전점검 사항 7가지 표
     st.write("**✅ 공통 안전점검 사항**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
     common_list = [
@@ -118,7 +118,6 @@ elif st.session_state.page == "tbm_write":
         df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
-    st.caption("아래 회색 영역에 서명해 주세요.")
     canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_sign")
 
     if st.button("💾 점검 완료 및 저장하기"):
@@ -144,4 +143,4 @@ elif st.session_state.page == "tbm_status":
                 df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
                 st.dataframe(df_all.iloc[::-1], use_container_width=True, hide_index=True)
             else: st.info("기록된 데이터가 없습니다.")
-        except: st.error("데이터 조회 중 오류가 발생했습니다.")
+        except: st.error("시트 데이터를 불러오지 못했습니다.")
