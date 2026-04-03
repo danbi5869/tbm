@@ -16,36 +16,11 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [비밀번호 및 지시사항 세션 관리]
+# [세션 상태 관리] 지시사항 및 로그인 상태 유지
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
-
-# --- [사이드바: 관리자 로그인] ---
-with st.sidebar:
-    st.header("⚙️ 관리자 설정")
-    if not st.session_state.admin_logged_in:
-        password = st.text_input("관리자 비밀번호", type="password")
-        if st.button("로그인"):
-            if password == "1234":  # 👈 여기에 원하시는 비밀번호를 입력하세요!
-                st.session_state.admin_logged_in = True
-                st.success("관리자로 로그인되었습니다.")
-                st.rerun()
-            else:
-                st.error("비밀번호가 틀렸습니다.")
-    else:
-        st.write("✅ 관리자 모드 활성화 중")
-        # 관리자만 수정 가능한 입력창
-        new_notice = st.text_area("📢 안전 지시사항 수정", st.session_state.safety_notice, height=150)
-        if st.button("내용 업데이트"):
-            st.session_state.safety_notice = new_notice
-            st.success("지시사항이 업데이트되었습니다.")
-            st.rerun()
-        
-        if st.button("로그아웃"):
-            st.session_state.admin_logged_in = False
-            st.rerun()
 
 # [UI 디자인]
 st.markdown("""
@@ -57,16 +32,25 @@ st.markdown("""
             background-color: #fff4f4;
             border-left: 5px solid #ff4b4b;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .stButton>button {
             width: 100%;
             border-radius: 12px;
-            height: 4em;
+            height: 3.8em;
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
+            font-size: 1.1em;
+        }
+        /* 관리자 로그인 박스 스타일 */
+        .admin-login-box {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -85,15 +69,12 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정] ---
-h_job = "  작업명  "
-h_content = "         점검내용         "
-h_check = " 확인 "
-
+# --- [체크리스트 초기 데이터] ---
+h_job, h_content, h_check = " 작업명 ", " 점검내용 ", "확인"
 df_init = pd.DataFrame([
     {h_job: "작업계획 공유", h_content: "작업순서 및 역할 분담 완료", h_check: False},
-    {h_job: "보호구 착용", h_content: "안전모, 안전화, 장갑, 보호안경, 마스크 등 착용", h_check: False},
-    {h_job: "공구 점검", h_content: "공구 상태 이상없음", h_check: False},
+    {h_job: "보호구 착용", h_content: "안전모, 안전화, 장갑, 보호구 착용", h_check: False},
+    {h_job: "공구 점검", h_content: "사용 공구 상태 이상없음", h_check: False},
     {h_job: "작업장 정리", h_content: "바닥 미끄럼, 장애물 정리", h_check: False},
     {h_job: "위험구역 설정", h_content: "출입통제 및 안전표지 설치", h_check: False},
     {h_job: "전원 차단 확인", h_content: "Lock-out/Tag-out 적용", h_check: False},
@@ -103,13 +84,12 @@ df_init = pd.DataFrame([
 sheet = get_sheet()
 
 if sheet:
-    tab1, tab2 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황"])
+    # ✅ 탭 3개 구성: 점검하기, 현황 조회, 관리자 설정
+    tab1, tab2, tab3 = st.tabs(["📝 TBM 점검하기", "📊 전체 점검 현황", "⚙️ 관리자 설정"])
 
+    # --- [TAB 1: TBM 점검하기] ---
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
-
-        # ✅ [수정된 지시사항 박스]
-        # 줄바꿈(\n)을 HTML 태그(<br>)로 바꿔서 보여줍니다.
         display_text = st.session_state.safety_notice.replace("\n", "<br>")
         st.markdown(f"""
             <div class="notice-box">
@@ -125,30 +105,10 @@ if sheet:
         job_name = st.text_input("금일 작업명", key="job_input", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
-        
-        edited_df = st.data_editor(
-            df_init,
-            column_config={
-                h_job: st.column_config.TextColumn(h_job, width="medium", disabled=True),
-                h_content: st.column_config.TextColumn(h_content, width="large", disabled=True),
-                h_check: st.column_config.CheckboxColumn(h_check, width="small", default=False, alignment="center"),
-            },
-            hide_index=True,
-            use_container_width=True,
-            num_rows="fixed",
-            key="editor"
-        )
-
-        st.markdown("---")
-        
-        all_checked = edited_df[h_check].all() 
-        status = "정상" if all_checked else "조치 필요"
+        edited_df = st.data_editor(df_init, hide_index=True, use_container_width=True, key="editor")
 
         st.write("✒️ **서명**")
-        canvas_result = st_canvas(
-            stroke_width=3, stroke_color="#000000", background_color="#f0f2f6",
-            height=150, width=330, drawing_mode="freedraw", key="canvas_main"
-        )
+        canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f0f2f6", height=150, width=330, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
             if not input_name or not job_name:
@@ -156,45 +116,67 @@ if sheet:
             elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0:
                 st.warning("⚠️ 하단 서명란에 서명을 해주세요.")
             else:
-                with st.spinner('데이터를 저장 중입니다...'):
+                with st.spinner('데이터 저장 중...'):
                     now = datetime.datetime.now()
-                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), "✅ 완료"]
-                    try:
-                        sheet.append_row(new_row)
-                        st.success(f"🎊 점검이 정상적으로 완료되었습니다! ({input_name}님)")
-                        st.balloons()
-                        time.sleep(2) 
-                        st.rerun() 
-                    except Exception as e:
-                        st.error(f"저장 중 오류가 발생했습니다: {e}")
+                    new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, "정상" if edited_df[h_check].all() else "조치 필요", now.strftime('%H:%M:%S'), "✅ 완료"]
+                    sheet.append_row(new_row)
+                    st.success(f"🎊 점검이 정상적으로 완료되었습니다! ({input_name}님)")
+                    st.balloons()
+                    time.sleep(2)
+                    st.rerun()
 
+    # --- [TAB 2: 전체 점검 현황] ---
     with tab2:
         st.subheader("📊 점검 현황 조회")
-        
-        col_date, col_name = st.columns(2)
-        with col_date: search_date = st.date_input("📅 날짜 선택", datetime.date.today())
-        
-        search_date_str = search_date.isoformat()
+        c_date, c_name = st.columns(2)
+        with c_date: s_date = st.date_input("📅 날짜 선택", datetime.date.today())
+        s_date_str = s_date.isoformat()
         
         try:
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
-                header = [h.strip() for h in raw_data[0]]
-                all_df = pd.DataFrame(raw_data[1:], columns=header)
+                all_df = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
                 if '서명' in all_df.columns: all_df = all_df.rename(columns={'서명': '서명확인'})
                 if '성함' in all_df.columns: all_df = all_df.rename(columns={'성함': '이름'})
 
-                if '날짜' in all_df.columns:
-                    date_filtered_df = all_df[all_df['날짜'] == search_date_str]
-                    if not date_filtered_df.empty:
-                        names_in_date = sorted(date_filtered_df['이름'].unique().tolist())
-                        with col_name: selected_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names_in_date)
-                        final_df = date_filtered_df if selected_name == "전체 보기" else date_filtered_df[date_filtered_df['이름'] == selected_name]
-                        st.metric(f"{search_date_str} 점검 인원", f"{len(final_df)}명")
-                        display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
-                        available_cols = [c for c in display_cols if c in final_df.columns]
-                        st.dataframe(final_df[available_cols], use_container_width=True, hide_index=True)
-                    else:
-                        st.info(f"{search_date_str}에 완료된 점검 기록이 없습니다.")
-        except Exception as e:
-            st.error(f"현황판 로딩 중 오류: {e}")
+                d_filtered = all_df[all_df['날짜'] == s_date_str]
+                if not d_filtered.empty:
+                    names = sorted(d_filtered['이름'].unique().tolist())
+                    with c_name: s_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names)
+                    f_df = d_filtered if s_name == "전체 보기" else d_filtered[d_filtered['이름'] == s_name]
+                    st.metric(f"{s_date_str} 점검 인원", f"{len(f_df)}명")
+                    st.dataframe(f_df[['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']], use_container_width=True, hide_index=True)
+                else:
+                    st.info(f"{s_date_str}에 완료된 점검 기록이 없습니다.")
+        except: st.error("데이터 로딩 오류")
+
+    # --- [TAB 3: 관리자 설정] ---
+    with tab3:
+        st.subheader("⚙️ 관리자 전용 설정")
+        
+        if not st.session_state.admin_logged_in:
+            st.info("관리자 인증이 필요합니다.")
+            admin_pw = st.text_input("관리자 비밀번호를 입력하세요", type="password")
+            if st.button("인증하기"):
+                if admin_pw == "1234": # 👈 비밀번호 변경 가능
+                    st.session_state.admin_logged_in = True
+                    st.success("인증 성공!")
+                    st.rerun()
+                else:
+                    st.error("비밀번호가 일치하지 않습니다.")
+        else:
+            st.success("🔓 관리자 모드 활성화 중")
+            col_admin1, col_admin2 = st.columns([2, 1])
+            with col_admin1:
+                updated_notice = st.text_area("📢 안전 지시사항 내용 수정", st.session_state.safety_notice, height=200)
+                if st.button("공지사항 즉시 업데이트"):
+                    st.session_state.safety_notice = updated_notice
+                    st.success("안전 지시사항이 변경되었습니다.")
+                    time.sleep(1)
+                    st.rerun()
+            
+            with col_admin2:
+                st.write("---")
+                if st.button("로그아웃", use_container_width=True):
+                    st.session_state.admin_logged_in = False
+                    st.rerun()
