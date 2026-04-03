@@ -37,39 +37,56 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [4. 스타일 디자인 - 의도를 100% 반영한 CSS]
+# [4. 스타일 디자인 - 모바일 1줄 제목 및 수직 정렬 최적화]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
-        .main-header { background-color: #1E3A8A; padding: 1.5rem 0; border-radius: 0; margin-bottom: 2rem; }
-        .main-header h1 { color: white !important; text-align: center; font-size: 2.2rem; margin: 0; }
         
-        /* [핵심] 중앙 정렬용 레이아웃 */
+        /* 헤더: 제목 1줄 유지 및 크기 자동 조절 */
+        .main-header { 
+            background-color: #1E3A8A; 
+            padding: 1.2rem 0.5rem; 
+            border-radius: 0 0 15px 15px; 
+            margin-bottom: 1.5rem; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .main-header h1 { 
+            color: white !important; 
+            font-size: clamp(1.2rem, 5vw, 2.2rem) !important; /* 최소 1.2rem, 화면의 5%, 최대 2.2rem */
+            margin: 0; 
+            white-space: nowrap; /* 줄바꿈 방지 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -1px; /* 글자 간격 살짝 좁힘 */
+        }
+        
+        /* 중앙 정렬용 컨테이너 */
         .main-container {
             display: flex;
             flex-direction: column;
-            align-items: center; /* 가로 중앙 정렬 */
+            align-items: center;
             width: 100%;
         }
 
-        /* 공지 박스: 글자 길이에 맞춤 */
+        /* 공지 박스: 버튼 너비와 일치시킴 */
         .notice-box { 
             background-color: #DBEAFE; 
             border-left: 5px solid #1E3A8A; 
-            padding: 20px; 
+            padding: 18px; 
             border-radius: 10px; 
             color: #1E3A8A; 
-            font-size: 17px; 
+            font-size: 16px; 
             text-align: left;
-            margin-bottom: 20px;
-            display: inline-block;
-            min-width: 350px; /* 버튼과 너비를 맞추기 위한 최소폭 */
-            max-width: 450px;
+            margin-bottom: 15px;
+            width: 90%; /* 모바일 대응 */
+            max-width: 350px; /* 버튼과 너비 통일 */
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            line-height: 1.5;
         }
 
-        /* 버튼 스타일: 공지 박스 너비(100%)에 꽉 차게 */
+        /* 버튼 스타일: 공지 박스 너비와 정확히 일치 */
         div.stButton {
             display: flex;
             justify-content: center;
@@ -77,10 +94,11 @@ st.markdown("""
         }
         
         div.stButton > button { 
-            width: 350px !important; /* 공지 박스 최소폭과 동일하게 설정 */
-            border-radius: 10px; 
+            width: 90% !important; 
+            max-width: 350px !important; 
+            border-radius: 12px; 
             height: 4.5rem; 
-            font-size: 19px !important; 
+            font-size: 18px !important; 
             font-weight: 700 !important; 
             margin-bottom: 12px !important;
             border: 2.5px solid #1E3A8A;
@@ -95,20 +113,21 @@ st.markdown("""
 
 # [5. 메인 화면 로직]
 if st.session_state.page == "main":
+    # 제목 부분 (1줄 고정)
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # 전체를 감싸는 컨테이너 시작
+    # 전체 중앙 정렬 시작
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
     
-    # 1. 공지사항 (중앙 정렬)
+    # 1. 공지사항 (중앙 정렬 및 너비 고정)
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-box">
-            <b>📢 금일 안전 지시사항</b><br><br>{display_text}
+            <b style="font-size: 1.1rem;">📢 금일 안전 지시사항</b><br><br>{display_text}
         </div>
     ''', unsafe_allow_html=True)
     
-    # 2. 버튼들 (공지 박스 바로 밑으로 정렬)
+    # 2. 버튼들 (공지 박스 바로 밑으로 수직 정렬)
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
         
@@ -120,7 +139,7 @@ if st.session_state.page == "main":
 
     st.markdown('</div>', unsafe_allow_html=True) # 컨테이너 끝
 
-# [나머지 페이지 로직은 기존과 동일]
+# [기타 페이지 로직은 기존 소스코드와 동일하게 유지]
 elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
