@@ -15,13 +15,12 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [UI 디자인: 헤더 및 테이블 스타일]
+# [UI 디자인]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
-        /* 표 헤더 스타일: 굵게 및 배경색 */
         div[data-testid="stDataFrame"] th {
             font-weight: 900 !important;
             color: #000 !important;
@@ -53,7 +52,7 @@ def get_sheet():
     except Exception as e:
         return None
 
-# --- [표 제목 설정: 특수 공백으로 제목만 중앙 정렬 효과] ---
+# --- [표 제목 설정] ---
 h_job = "  작업명  "
 h_content = "         점검내용         "
 h_check = " 확인 "
@@ -84,7 +83,6 @@ if sheet:
 
         st.markdown("---")
         
-        # 편집기 설정 (본문은 왼쪽 정렬 유지)
         edited_df = st.data_editor(
             df_init,
             column_config={
@@ -117,7 +115,8 @@ if sheet:
                 st.warning("⚠️ 서명이 누락되었습니다.")
             else:
                 now = datetime.datetime.now()
-                new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "서명완료"]
+                # 시트에 저장되는 순서 (날짜, 소속, 성함, 작업명, 상태, 시간, 비고, 서명)
+                new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "✅ 완료"]
                 try:
                     sheet.append_row(new_row)
                     st.success(f"🎉 {input_name}님, 저장 완료!")
@@ -129,30 +128,32 @@ if sheet:
     with tab2:
         st.subheader("📊 금일 점검 현황")
         today_str = datetime.date.today().isoformat()
-        st.write(f"📅 기준일: {today_str}")
-
+        
         try:
-            # --- [중복 헤더 오류 방지 로직] ---
-            # get_all_records 대신 get_all_values를 사용하여 수동으로 데이터프레임 구축
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
-                # 1. 헤더에서 실제 이름이 있는 열까지만 추출 (빈 열 무시)
                 header = [h.strip() for h in raw_data[0]]
                 valid_cols = [i for i, h in enumerate(header) if h != ""]
                 
-                # 2. 유효한 열 데이터만 선택하여 데이터프레임 생성
                 clean_header = [header[i] for i in valid_cols]
                 data_rows = [[row[i] for i in valid_cols] for row in raw_data[1:]]
                 
                 all_df = pd.DataFrame(data_rows, columns=clean_header)
                 
+                # 시트의 '서명' 열 이름을 '서명확인'으로 변경하여 보여줌
+                if '서명' in all_df.columns:
+                    all_df = all_df.rename(columns={'서명': '서명확인'})
+
                 if '날짜' in all_df.columns:
                     today_df = all_df[all_df['날짜'] == today_str]
                     st.metric("오늘 완료 인원", f"{len(today_df)}명")
                     
                     if not today_df.empty:
-                        display_cols = ['시간', '소속', '이름', '작업명', '상태', '비고']
+                        # ✅ 요청하신 순서대로 배치 (날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인)
+                        # '이름' 열이 시트에서 '이름'인지 '성함'인지 확인 필요 (현재 코드 저장 시엔 '이름' 위치에 저장됨)
+                        display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
                         available_cols = [c for c in display_cols if c in today_df.columns]
+                        
                         st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
                     else:
                         st.info("아직 오늘 완료된 점검 기록이 없습니다.")
