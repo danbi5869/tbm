@@ -22,6 +22,14 @@ st.markdown("""
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
+        /* 지시사항 박스 스타일 */
+        .notice-box {
+            background-color: #fff4f4;
+            border-left: 5px solid #ff4b4b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
         div[data-testid="stDataFrame"] th {
             font-weight: 900 !important;
             color: #000 !important;
@@ -76,6 +84,19 @@ if sheet:
 
     with tab1:
         st.subheader("🏗️ TBM 안전 점검 일지")
+
+        # ✅ [추가] 오늘 작업 지시사항/공지사항 칸
+        # 관리자님께서 아래 내용을 수정하시면 모든 작업자 앱에 즉시 반영됩니다.
+        st.markdown(f"""
+            <div class="notice-box">
+                <h4 style="margin-top:0; color:#ff4b4b;">📢 오늘의 안전 지시사항</h4>
+                <p style="margin-bottom:0; font-size:0.95em; line-height:1.6;">
+                    1. 환절기 개인 건강관리 철저 (충분한 휴식 권장)<br>
+                    2. 작업장 내 이동 시 지정된 통로 엄수<br>
+                    3. 중량물 취급 시 2인 1조 작업 원칙 준수
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
         
         c1, c2 = st.columns(2)
         team_list = ["운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
@@ -130,7 +151,6 @@ if sheet:
     with tab2:
         st.subheader("📊 점검 현황 조회")
         
-        # 1. 날짜 및 이름 조회 필터 영역
         col_date, col_name = st.columns(2)
         with col_date:
             search_date = st.date_input("📅 날짜 선택", datetime.date.today())
@@ -143,23 +163,19 @@ if sheet:
                 header = [h.strip() for h in raw_data[0]]
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
                 
-                # 열 이름 통일 (서명->서명확인, 성함->이름)
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
                 if '성함' in all_df.columns:
                     all_df = all_df.rename(columns={'성함': '이름'})
 
                 if '날짜' in all_df.columns:
-                    # 해당 날짜 데이터 먼저 필터링
                     date_filtered_df = all_df[all_df['날짜'] == search_date_str]
                     
-                    # 2. 선택한 날짜에 데이터가 있는 경우에만 이름 필터 활성화
                     if not date_filtered_df.empty:
                         names_in_date = sorted(date_filtered_df['이름'].unique().tolist())
                         with col_name:
                             selected_name = st.selectbox("👤 이름별 조회", ["전체 보기"] + names_in_date)
                         
-                        # 이름 필터 적용
                         if selected_name != "전체 보기":
                             final_df = date_filtered_df[date_filtered_df['이름'] == selected_name]
                         else:
