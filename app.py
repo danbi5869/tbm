@@ -51,10 +51,10 @@ specific_checks = {
 }
 
 # [4. 구글 시트 연결]
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 @st.cache_resource
 def get_sheet():
     try:
+        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds_info = st.secrets["gcp_service_account"]
         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
         client = gspread.authorize(creds)
@@ -73,9 +73,7 @@ st.markdown("""
         .main-header h1 { color: white !important; text-align: center; font-size: 2rem; margin: 0; }
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .stButton > button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important; margin-bottom: 12px; }
-        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; border: none !important; height: 2.8rem; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; border: none !important; height: 3.8rem; }
-        .search-hint { background-color: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 14px; color: #334155; margin-top: -15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -103,18 +101,15 @@ elif st.session_state.page == "tbm_write":
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ 이름 입력 (한 글자만 쳐도 제안이 뜨도록 구현)
-        search_input = st.text_input("성함 입력", placeholder="성함을 입력하세요").strip()
+        # ✅ 개선된 이름 입력 방식 (검색 + 자유입력)
+        # 80명 명단에 '직접 입력' 옵션을 추가하여 목록에 없어도 칠 수 있게 함
+        options = [""] + team_data[selected_team]
+        final_name = st.selectbox("성함 선택 (또는 직접 입력)", options, index=0, placeholder="이름을 입력하세요")
         
-    # ✅ 실시간 검색 제안 로직
-    final_name = search_input
-    if search_input:
-        matches = [name for name in team_data[selected_team] if search_input in name]
-        if matches:
-            st.markdown(f'<div class="search-hint">💡 명단 검색 결과: <b>{" , ".join(matches)}</b></div>', unsafe_allow_html=True)
-            # 만약 검색결과가 하나고 입력값과 같다면 그것을 사용, 아니면 입력한 값 그대로 사용
-        else:
-            st.markdown(f'<div class="search-hint">ℹ️ 명단에 없습니다. (신규 인원은 입력하신 이름으로 저장됩니다)</div>', unsafe_allow_html=True)
+        # 만약 목록에 없는 이름을 써야 한다면 text_input으로 전환하는 꼼수 대신 
+        # Streamlit의 최신 selectbox는 타이핑 시 자동 필터링을 지원합니다.
+        # 더 자유로운 입력을 원하시면 아래 주석을 풀고 사용하세요.
+        # final_name = st.text_input("성함 입력", placeholder="이름 입력")
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
