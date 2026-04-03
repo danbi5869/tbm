@@ -75,8 +75,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if sheet:
+    # ✅ 탭 3개 생성
     tab1, tab2, tab3 = st.tabs(["📝 TBM 점검", "📊 점검 현황", "⚙️ 관리자"])
 
+    # --- TAB 1: TBM 점검하기 ---
     with tab1:
         st.subheader("🏗️ TBM 안전 점검")
         display_text = st.session_state.safety_notice.replace("\n", "<br>")
@@ -87,10 +89,8 @@ if sheet:
             selected_team = st.selectbox("부서 선택", list(team_data.keys()), key="dept_s")
         
         with c2:
-            # ✅ [수정된 핵심 로직] 텍스트 입력창 하나만 배치
-            final_name = st.text_input("성함 (조회/직접입력)", placeholder="이름을 입력하세요", key="name_input").strip()
-            
-            # 입력한 글자가 포함된 팀원이 명단에 있으면 추천 안내
+            # ✅ 성함 조회 및 직접 입력
+            final_name = st.text_input("성함 입력", placeholder="이름을 입력하세요", key="name_input").strip()
             if final_name:
                 matches = [n for n in team_data[selected_team] if final_name in n]
                 if matches:
@@ -99,8 +99,6 @@ if sheet:
         selected_job = st.selectbox("금일 작업명 선택", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"], key="job_s")
 
         st.markdown("---")
-        
-        # ✅ 이전 그대로의 공통 안전점검 사항 표
         col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
         st.markdown('<div class="section-title">✅ 공통 안전점검 사항</div>', unsafe_allow_html=True)
         common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
@@ -110,24 +108,48 @@ if sheet:
         canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_main")
 
         if st.button("점검 완료 및 저장"):
-            if not final_name: 
-                st.warning("⚠️ 성함을 입력해 주세요.")
-            elif not selected_job: 
-                st.warning("⚠️ 작업명을 선택해 주세요.")
-            elif not df_common["확인"].all(): 
-                st.warning("⚠️ 모든 점검 항목에 체크해 주세요.")
-            elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0: 
-                st.warning("⚠️ 서명을 완료해 주세요.")
+            if not final_name: st.warning("⚠️ 성함을 입력해 주세요.")
+            elif not selected_job: st.warning("⚠️ 작업명을 선택해 주세요.")
+            elif not df_common["확인"].all(): st.warning("⚠️ 모든 항목을 체크해 주세요.")
+            elif canvas_result.json_data and len(canvas_result.json_data["objects"]) == 0: st.warning("⚠️ 서명을 완료해 주세요.")
             else:
                 with st.spinner('저장 중...'):
                     try:
                         kst = timezone(timedelta(hours=9))
                         now = datetime.datetime.now(kst)
-                        # ✅ 사용자가 친 '글자 그대로' 무조건 시트에 저장
                         sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                        st.success(f"🎉 {final_name}님 저장 완료!")
-                        st.balloons(); time.sleep(2); st.rerun()
-                    except Exception as e:
-                        st.error(f"저장 실패: {e}")
+                        st.success(f"🎉 {final_name}님 저장 완료!"); st.balloons(); time.sleep(2); st.rerun()
+                    except Exception as e: st.error(f"저장 실패: {e}")
 
-    # (TAB 2, TAB 3 등 나머지 관리 기능은 이전 버전과 동일하게 유지)
+    # --- TAB 2: 점검 현황 ---
+    with tab2:
+        st.subheader("📊 전체 점검 현황")
+        try:
+            raw_data = sheet.get_all_values()
+            if len(raw_data) > 1:
+                df_all = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
+                # 날짜 선택 필터
+                kst_today = datetime.datetime.now(timezone(timedelta(hours=9))).date()
+                s_date = st.date_input("📅 날짜 선택", kst_today)
+                df_f = df_all[df_all['날짜'] == s_date.isoformat()]
+                df_f = df_f.iloc[::-1].reset_index(drop=True)
+                st.dataframe(df_f, use_container_width=True, hide_index=True)
+            else: st.info("기록된 데이터가 없습니다.")
+        except: st.error("데이터 로딩 중 오류 발생")
+
+    # --- TAB 3: 관리자 설정 ---
+    with tab3:
+        st.subheader("⚙️ 관리자 설정")
+        if not st.session_state.admin_logged_in:
+            admin_pw = st.text_input("관리자 비밀번호", type="password")
+            if st.button("로그인"):
+                if admin_pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
+                else: st.error("비밀번호 불일치")
+        else:
+            new_notice = st.text_area("📢 메인 공지사항 수정", st.session_state.safety_notice, height=150)
+            if st.button("지시사항 저장"):
+                st.session_state.safety_notice = new_notice
+                st.success("업데이트 완료!"); st.rerun()
+            if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
+else:
+    st.error("구글 시트 연결을 확인해 주세요.")
