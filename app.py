@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 유동적 박스 크기 적용]
+# [5. 스타일 디자인 - 정중앙 정렬 강화]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -72,35 +72,41 @@ st.markdown("""
         .main-header { background-color: #1E3A8A; padding: 1.5rem 0; border-radius: 0 0 20px 20px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2.2rem; margin: 0; }
         
-        .centered-container {
+        .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        
+        /* 버튼 공통 스타일 및 가운데 정렬 강제 */
+        .stButton {
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
             width: 100%;
         }
-
-        .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         
-        /* 버튼 스타일 */
-        .stButton>button { width: 100%; max-width: 400px; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; transition: 0.1s; margin: 0 auto; display: block; }
+        .stButton>button { 
+            width: 100%; 
+            max-width: 350px; /* 버튼의 최대 너비 제한 */
+            border-radius: 12px; 
+            height: 4.8rem; 
+            font-size: 20px !important; 
+            font-weight: 700 !important; 
+            margin: 0.5rem 0; /* 버튼 사이 간격 */
+        }
         
         div.stButton > button:has(div:contains("TBM 점검 작성")),
         div.stButton > button:has(div:contains("현황 확인")),
         div.stButton > button:has(div:contains("관리자 페이지")) {
-            background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important;
+            background-color: #ffffff; border: 2.5px solid #1E3A8A; color: #1E3A8A !important;
         }
         .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
         
-        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; max-width: 150px; }
+        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; max-width: 120px; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; height: 3.5rem; border: none !important; }
         
-        /* [핵심 수정] 글자 길이에 맞춰 크기가 조절되는 공지 박스 */
+        /* 공지 박스 가운데 정렬 */
         .notice-wrapper {
             display: flex;
             justify-content: center;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .notice-box { 
             background-color: #DBEAFE; 
@@ -109,10 +115,9 @@ st.markdown("""
             border-radius: 10px; 
             color: #1E3A8A; 
             font-size: 17px; 
-            display: inline-block; /* 내부 글자 크기에 박스를 맞춤 */
+            display: inline-block;
             text-align: left;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            max-width: 90%; /* 화면 밖으로 나가지 않게 최대폭 제한 */
+            max-width: 85%;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -122,7 +127,7 @@ st.markdown("""
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # 공지사항 영역 (글자 길이에 맞춰 크기 조절됨)
+    # 공지사항 영역
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'''
         <div class="notice-wrapper">
@@ -132,24 +137,20 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    # 버튼 영역
-    col_left, col_mid, col_right = st.columns([1, 4, 1])
-    with col_mid:
-        if st.button("📝 금일 TBM 점검 작성"):
-            st.session_state.page = "tbm_write"; st.rerun()
-        st.write("") 
-        if st.button("📊 실시간 점검 현황 확인"):
-            st.session_state.page = "tbm_status"; st.rerun()
-        st.write("") 
-        if st.button("⚙️ 시스템 관리자 페이지"):
-            st.session_state.page = "tbm_admin"; st.rerun()
+    # 버튼 영역 (이제 컬럼 없이 CSS flex로 정가운데 정렬됩니다)
+    if st.button("📝 금일 TBM 점검 작성"):
+        st.session_state.page = "tbm_write"; st.rerun()
+        
+    if st.button("📊 실시간 점검 현황 확인"):
+        st.session_state.page = "tbm_status"; st.rerun()
+        
+    if st.button("⚙️ 시스템 관리자 페이지"):
+        st.session_state.page = "tbm_admin"; st.rerun()
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        if st.button("⬅️ 메인으로"):
-            st.session_state.page = "main"; st.rerun()
+    if st.button("⬅️ 메인으로"):
+        st.session_state.page = "main"; st.rerun()
         
     st.subheader("🏗️ TBM 점검 작성")
     
@@ -176,7 +177,7 @@ elif st.session_state.page == "tbm_write":
     st.write("**✒️ 최종 확인 서명**")
     st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
 
-    if st.button("점검 완료 및 저장하기"):
+    if st.button("저장하기"):
         if not final_name or not selected_job or not df_common["확인"].all():
             st.warning("⚠️ 필수 항목을 확인해 주세요.")
         else:
@@ -192,7 +193,7 @@ elif st.session_state.page == "tbm_write":
 
 # 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
-    if st.button("⬅️ 메인으로 돌아가기"):
+    if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
     
@@ -221,7 +222,7 @@ elif st.session_state.page == "tbm_status":
 
 # ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
-    if st.button("⬅️ 메인으로 돌아가기"):
+    if st.button("⬅️ 메인으로"):
         st.session_state.page = "main"; st.rerun()
     if not st.session_state.admin_logged_in:
         pw = st.text_input("비밀번호", type="password")
