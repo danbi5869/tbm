@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인 - 네비게이션 버튼 최적화]
+# [5. 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -107,52 +107,20 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        /* 메인 화면 큰 버튼 */
-        div.stButton {
-            display: flex;
-            justify-content: center;
-            width: 100% !important;
-        }
-        
+        /* 버튼 스타일 */
         .stButton>button { 
-            width: 95% !important; 
-            max-width: 420px !important; 
-            min-height: 4.8rem;
+            width: 100% !important; 
             border-radius: 12px; 
-            font-size: clamp(14px, 4vw, 19px) !important; 
             font-weight: 700 !important; 
-            margin: 10px 0 !important; 
-            border: 2.5px solid #1E3A8A !important;
-            background-color: white !important;
-            color: #1E3A8A !important;
-            white-space: nowrap !important;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             transition: 0.2s;
         }
-        .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
 
-        /* 상단 네비게이션용 작은 버튼 스타일 */
-        div.stButton > button:has(div:contains("메인으로")),
-        div.stButton > button:has(div:contains("현황 확인")) { 
-            height: 2.2rem !important; 
-            min-height: 2.2rem !important; 
-            font-size: 13px !important; 
-            margin: 0 !important; 
-            padding: 0 10px !important;
-            border-radius: 8px !important;
-            width: auto !important;
-            border: 1px solid #cbd5e1 !important;
-        }
-        
+        /* 메인으로 버튼 (상단 전용) */
         div.stButton > button:has(div:contains("메인으로")) {
-            background-color: #E2E8F0 !important; color: #475569 !important;
-        }
-
-        /* 가로 배치 간격 조정 */
-        div[data-testid="stHorizontalBlock"] {
-            gap: 8px !important;
+            background-color: #E2E8F0 !important; 
+            color: #475569 !important;
+            height: 2.5rem !important;
+            font-size: 14px !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -169,27 +137,20 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    if st.button("📝 금일 TBM 점검 작성"):
+    if st.button("📝 금일 TBM 점검 작성", key="main_write"):
         st.session_state.page = "tbm_write"; st.rerun()
-        
-    if st.button("📊 실시간 점검 현황 확인"):
+    if st.button("📊 실시간 점검 현황 확인", key="main_status"):
         st.session_state.page = "tbm_status"; st.rerun()
-        
-    if st.button("⚙️ 시스템 관리자 페이지"):
+    if st.button("⚙️ 시스템 관리자 페이지", key="main_admin"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    # 상단 버튼 가로 밀착 배치
-    nav_col1, nav_col2, nav_spacer = st.columns([0.8, 1, 3]) 
-    with nav_col1:
-        if st.button("⬅️ 메인으로"):
-            st.session_state.page = "main"; st.rerun()
-    with nav_col2:
-        if st.button("📊 현황 확인"):
-            st.session_state.page = "tbm_status"; st.rerun()
+    # --- [수정] 상단 네비게이션: 메인으로 버튼만 남김 ---
+    if st.button("⬅️ 메인으로 돌아가기", use_container_width=True):
+        st.session_state.page = "main"; st.rerun()
             
     st.markdown("---")
     st.subheader("🏗️ TBM 점검 작성")
@@ -217,7 +178,10 @@ elif st.session_state.page == "tbm_write":
     st.write("**✒️ 최종 확인 서명**")
     st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
 
-    if st.button("점검 완료 및 저장하기"):
+    st.markdown("<br>", unsafe_allow_html=True) 
+
+    # --- [수정] 하단 버튼 배치: 저장 버튼 밑에 현황 확인 버튼 ---
+    if st.button("✅ 점검 완료 및 저장하기", use_container_width=True):
         if not final_name or not selected_job or not df_common["확인"].all():
             st.warning("⚠️ 필수 항목을 확인해 주세요.")
         else:
@@ -228,12 +192,16 @@ elif st.session_state.page == "tbm_write":
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
                     st.success("✅ 점검 완료했습니다!")
                     st.balloons()
+                    time.sleep(1); st.session_state.page = "main"; st.rerun()
                 except:
                     st.error("구글 시트 저장 실패")
 
+    if st.button("📊 실시간 점검 현황 확인하러 가기", use_container_width=True):
+        st.session_state.page = "tbm_status"; st.rerun()
+
 # 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
-    if st.button("⬅️ 메인으로 돌아가기"):
+    if st.button("⬅️ 메인으로 돌아가기", use_container_width=True):
         st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
     
@@ -242,27 +210,23 @@ elif st.session_state.page == "tbm_status":
         if len(raw_data) > 1:
             df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
             col1, col2 = st.columns(2)
-            with col1:
-                s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
-            with col2:
-                s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
+            with col1: s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
+            with col2: s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
             
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
             if s_name:
-                name_col = df_all.columns[2] 
-                df_f = df_f[df_f[name_col].str.contains(s_name, na=False)]
+                df_f = df_f[df_f[df_all.columns[2]].str.contains(s_name, na=False)]
             
             if not df_f.empty:
-                st.write(f"🔎 검색 결과: {len(df_f)}건")
                 st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
             else:
                 st.info("조회된 데이터가 없습니다.")
-    except Exception as e:
-        st.error(f"데이터 불러오기 실패: {e}")
+    except:
+        st.error("데이터 불러오기 실패")
 
 # ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
-    if st.button("⬅️ 메인으로 돌아가기"):
+    if st.button("⬅️ 메인으로 돌아가기", use_container_width=True):
         st.session_state.page = "main"; st.rerun()
     if not st.session_state.admin_logged_in:
         pw = st.text_input("비밀번호", type="password")
