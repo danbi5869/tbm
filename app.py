@@ -122,7 +122,6 @@ if sheet:
         df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="ed_common", column_config=col_config)
 
         df_specific = None
-        remark = ""
         if selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검</div>', unsafe_allow_html=True)
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
@@ -144,8 +143,8 @@ if sheet:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
                         now = datetime.datetime.now()
-                        # 저장 순서: 날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명여부
-                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), remark, "✅ 완료"])
+                        # ✅ 저장 순서 수정: [날짜, 소속, 이름, 작업명, 상태, 시간, 서명여부, 비고]
+                        sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", remark])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
                         st.balloons()
                         time.sleep(2)
@@ -163,16 +162,13 @@ if sheet:
         try:
             raw_data = sheet.get_all_values()
             if len(raw_data) > 1:
-                # 헤더 세팅
                 df_all = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
-                # 날짜 필터링
                 df_f = df_all[df_all['날짜'] == s_date.isoformat()]
-                # 이름 필터링
                 if s_name: 
                     df_f = df_f[df_f['이름'].str.contains(s_name, na=False)]
                 
-                # 시각적 가독성을 위해 컬럼 순서 재배치 (비고와 서명 위치 확인)
-                # 시트 저장 순서가 [날짜, 소속, 이름, 작업명, 상태, 시간, 비고, 서명] 인 경우 그대로 출력
+                # ✅ 화면 표시 가독성을 위한 열 순서 재배치
+                # 구글 시트의 헤더 순서와 동일하게 유지되도록 설정합니다.
                 st.dataframe(df_f, use_container_width=True, hide_index=True)
             else: st.info("기록된 데이터가 없습니다.")
         except: st.error("데이터 로딩 중 오류가 발생했습니다.")
