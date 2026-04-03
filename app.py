@@ -60,7 +60,8 @@ specific_checks = {
     "시험/가동": [{"항목": "신호", "점검내용": "운전/정지 신호수 배치", "확인": False}, {"항목": "비상", "점검내용": "E-Stop 버튼 확인", "확인": False}]
 }
 
-job_options = ["", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
+# ✅ '공통작업' 항목 추가
+job_options = ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"]
 
 # [스타일 및 모바일 최적화]
 st.markdown("""
@@ -122,7 +123,8 @@ if sheet:
         df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, key="ed_common", column_config=col_config)
 
         df_specific = None
-        if selected_job in specific_checks:
+        # ✅ '공통작업'이 아니고 specific_checks에 등록된 작업일 때만 추가 점검표 표시
+        if selected_job and selected_job != "공통작업" and selected_job in specific_checks:
             st.markdown(f'<div class="section-title">⚠️ {selected_job} 추가 점검</div>', unsafe_allow_html=True)
             spec_config = {"항목": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
             df_specific = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True, key="ed_spec", column_config=spec_config)
@@ -143,7 +145,7 @@ if sheet:
                 with st.spinner('구글 시트에 기록 중입니다...'):
                     try:
                         now = datetime.datetime.now()
-                        # ✅ 저장 순서 수정: [날짜, 소속, 이름, 작업명, 상태, 시간, 서명여부, 비고]
+                        # 저장 순서: [날짜, 소속, 이름, 작업명, 상태, 시간, 서명여부, 비고]
                         sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, input_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", remark])
                         st.success(f"🎉 {input_name}님, 점검을 완료했습니다!")
                         st.balloons()
@@ -152,7 +154,7 @@ if sheet:
                     except Exception as e:
                         st.error(f"저장 중 오류 발생: {e}")
 
-    # --- TAB 2: 전체 점검 현황 (컬럼 순서 수정) ---
+    # --- TAB 2: 전체 점검 현황 ---
     with tab2:
         st.subheader("📊 전체 점검 현황")
         c_date, c_name = st.columns(2)
@@ -166,9 +168,6 @@ if sheet:
                 df_f = df_all[df_all['날짜'] == s_date.isoformat()]
                 if s_name: 
                     df_f = df_f[df_f['이름'].str.contains(s_name, na=False)]
-                
-                # ✅ 화면 표시 가독성을 위한 열 순서 재배치
-                # 구글 시트의 헤더 순서와 동일하게 유지되도록 설정합니다.
                 st.dataframe(df_f, use_container_width=True, hide_index=True)
             else: st.info("기록된 데이터가 없습니다.")
         except: st.error("데이터 로딩 중 오류가 발생했습니다.")
