@@ -16,12 +16,21 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [UI 디자인: 헤더 및 버튼 스타일]
+# [UI 디자인: 글씨 강조 및 표 정렬 스타일]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
         #MainMenu {visibility: hidden !important;}
         footer {visibility: hidden !important;}
+        
+        /* 표 헤더와 본문 텍스트 스타일 강제 지정 */
+        div[data-testid="stDataFrame"] th {
+            background-color: #f0f2f6 !important;
+            font-weight: 900 !important; /* 헤더 아주 진하게 */
+            color: #000 !important;
+            text-align: center !important;
+        }
+        
         .stButton>button {
             width: 100%;
             border-radius: 12px;
@@ -29,10 +38,6 @@ st.markdown("""
             background-color: #FF4B4B;
             color: white;
             font-weight: bold;
-        }
-        /* 데이터 에디터(표)의 텍스트가 잘 보이도록 설정 */
-        .stDataFrame div[data-testid="stTable"] {
-            border: 2px solid #444 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -52,10 +57,10 @@ def get_sheet():
         st.error(f"구글 시트 연결 실패: {e}")
         return None
 
-# --- [표 데이터 구성] ---
+# --- [표 데이터 구성: 글씨 강조를 위해 텍스트 수정 가능] ---
 teams = ["선택하세요", "운영", "기술", "입출창", "중요장치장", "전기/제동장", "전기", "판토", "제동", "정비", "차체/수선장", "출입문", "차체", "냉방장치", "회전기장", "TM", "CM", "대차장", "댐퍼/에어스프링", "기초제동1", "기초제동2", "윤축/축상장", "윤축", "축상", "차륜", "탐상"]
 
-# 초기 표 데이터 (이미지 양식 그대로)
+# 데이터프레임 생성 (내용 반영)
 df_init = pd.DataFrame([
     {"작업명": "작업계획 공유", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
     {"작업명": "보호구 착용", "점검내용": "안전모, 안전화, 장갑, 보호안경, 마스크 등 착용", "확인": False},
@@ -80,24 +85,38 @@ if sheet:
         job_name = st.text_input("금일 작업명", placeholder="작업명을 입력하세요")
 
         st.markdown("---")
-        st.write("✅ **점검 항목 확인 (해당 칸을 클릭하여 체크)**")
+        st.write("✅ **점검 항목 확인 (칸을 클릭하여 체크)**")
 
-        # --- [🆕 핵심: 칸이 붙어있는 데이터 에디터 표] ---
+        # --- [업데이트: 글씨 강조 및 가운데 정렬 설정] ---
         edited_df = st.data_editor(
             df_init,
             column_config={
-                "작업명": st.column_config.Column(width="medium", disabled=True),
-                "점검내용": st.column_config.Column(width="large", disabled=True),
-                "확인": st.column_config.CheckboxColumn(width="small", default=False),
+                "작업명": st.column_config.TextColumn(
+                    "작업명", 
+                    width="medium", 
+                    disabled=True,
+                    required=True,
+                    help="점검 항목의 이름입니다."
+                ),
+                "점검내용": st.column_config.TextColumn(
+                    "점검내용", 
+                    width="large", 
+                    disabled=True
+                ),
+                "확인": st.column_config.CheckboxColumn(
+                    "확인", 
+                    width="small", 
+                    default=False
+                ),
             },
             hide_index=True,
             use_container_width=True,
+            num_rows="fixed"
         )
         # --------------------------------------------
 
         st.markdown("---")
         
-        # 모든 항목이 체크되었는지 확인
         all_checked = edited_df["확인"].all()
         status = "정상" if all_checked else "조치 필요"
         remark = st.text_area("특이사항 (비고)")
@@ -118,11 +137,11 @@ if sheet:
                 new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), remark, "서명완료"]
                 try:
                     sheet.append_row(new_row)
-                    st.success("🎉 저장 성공!")
+                    st.success(f"🎉 {input_name}님, 오늘도 안전하게 작업하세요!")
                     st.balloons()
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
 
     with tab2:
         st.subheader("📊 오늘 현황")
-        # (현황판 로직 생략)
+        # (현황판 로직 유지)
