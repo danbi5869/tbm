@@ -66,8 +66,11 @@ sheet = get_sheet()
 # [5. ✨ 소프트 미니멀 스타일 CSS 디자인]
 st.markdown("""
     <style>
+        /* 배경: 눈이 편안한 연한 그레이 블루 */
         .stApp { background-color: #f8fafc; color: #1e293b; }
         header { visibility: hidden !important; }
+        
+        /* 메인 카드 컨테이너 */
         .block-container { 
             background-color: #ffffff; 
             padding: 2rem !important; 
@@ -75,34 +78,47 @@ st.markdown("""
             box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
             margin-top: 1.5rem;
         }
+        
+        /* 상단 헤더 섹션 */
         .main-header { 
             background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-            padding: 1.5rem; border-radius: 20px; 
-            margin-bottom: 1.5rem; text-align: center;
+            padding: 2rem; border-radius: 20px; 
+            margin-bottom: 2rem; text-align: center;
             border: 1px solid #bae6fd;
         }
-        .main-header h1 { color: #0369a1 !important; font-size: 1.6rem; font-weight: 800; margin: 0; }
+        .main-header h1 { color: #0369a1 !important; font-size: 1.8rem; font-weight: 800; margin: 0; }
+        
+        /* 버튼 스타일: 둥글고 깨끗한 화이트 & 블루 테두리 */
         .stButton>button { 
             width: 100%; border-radius: 16px; height: 4.8rem; 
             font-size: 18px !important; font-weight: 700 !important; 
-            transition: all 0.2s; background-color: #ffffff; 
-            color: #0284c7 !important; border: 1.5px solid #e2e8f0 !important;
+            transition: all 0.2s; 
+            background-color: #ffffff; 
+            color: #0284c7 !important;
+            border: 1.5px solid #e2e8f0 !important;
         }
         .stButton>button:hover { 
-            background-color: #f0f9ff !important; border-color: #38bdf8 !important;
-            transform: translateY(-2px); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1);
+            background-color: #f0f9ff !important; 
+            border-color: #38bdf8 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1);
         }
+        
+        /* 특수 버튼 색상 */
         div.stButton > button:has(div:contains("저장하기")) {
             background-color: #0284c7 !important; color: white !important; border: none !important;
         }
         div.stButton > button:has(div:contains("돌아가기")) {
             background-color: #f1f5f9 !important; color: #475569 !important; height: 2.8rem; border: none !important; font-size: 14px !important;
         }
+        
+        /* 공지사항 박스 */
         .notice-box { 
             background-color: #f0f9ff; border-left: 6px solid #38bdf8; 
-            padding: 20px; border-radius: 12px; margin-bottom: 25px; color: #0c4a6e;
-            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.05);
+            padding: 15px; border-radius: 12px; margin-bottom: 20px; color: #0c4a6e;
         }
+
+        /* 입력창 라운딩 처리 */
         .stTextInput>div>div>input, .stSelectbox>div>div>div {
             border-radius: 12px !important; border: 1px solid #e2e8f0 !important;
         }
@@ -114,23 +130,14 @@ st.markdown("""
 # 🏠 메인 화면
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 스마트 체크리스트</h1></div>', unsafe_allow_html=True)
-    
-    # [핵심 변경 사항] 지시사항을 메인 최상단으로 배치
-    display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'''
-        <div class="notice-box">
-            <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 8px;">📢 금일 안전 지시사항</div>
-            <div style="line-height: 1.6; font-size: 0.95rem;">{display_text}</div>
-        </div>
-    ''', unsafe_allow_html=True)
-
-    if st.button("📝 새 TBM 점검표 작성"):
+    st.write(" ")
+    if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
     st.write(" ")
     if st.button("📊 실시간 점검 현황 확인"):
         st.session_state.page = "tbm_status"; st.rerun()
     st.write(" ")
-    if st.button("⚙️ 시스템 관리 설정"):
+    if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
 
 # 📝 점검 작성 페이지
@@ -138,7 +145,9 @@ elif st.session_state.page == "tbm_write":
     if st.button("⬅️ 메인으로 돌아가기"):
         st.session_state.page = "main"; st.rerun()
         
-    st.subheader("🏗️ 점검 항목 입력")
+    st.subheader("🏗️ 점검표 작성")
+    display_text = st.session_state.safety_notice.replace("\n", "<br>")
+    st.markdown(f'<div class="notice-box"><b>📋 오늘의 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
     with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
@@ -150,9 +159,9 @@ elif st.session_state.page == "tbm_write":
 
     selected_job = st.selectbox("작업 분류", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
-    st.write("**✅ 공통 안전점검**")
+    st.write("**✅ 안전점검 항목**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("상세내용", width=220), "확인": st.column_config.CheckboxColumn("V", width=40)}
-    common_list = [{"작업명": "계획", "점검내용": "역할 분담 및 순서 확인", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용 확인", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상 없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "전원", "점검내용": "전원 차단 및 LOTO 확인", "확인": False}]
+    common_list = [{"작업명": "계획", "점검내용": "역할 분담 및 작업 순서 확인", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용 확인", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상 없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "전원", "점검내용": "전원 차단 및 LOTO 확인", "확인": False}]
     
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
@@ -172,7 +181,7 @@ elif st.session_state.page == "tbm_write":
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
                     sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료", ""])
-                    st.success("🎉 성공적으로 저장되었습니다!"); time.sleep(1); st.session_state.page = "main"; st.rerun()
+                    st.success("🎉 저장되었습니다!"); time.sleep(1); st.session_state.page = "main"; st.rerun()
                 except: st.error("구글 시트 저장 실패")
 
 # 📊 현황 확인 페이지
@@ -198,6 +207,6 @@ elif st.session_state.page == "tbm_admin":
         if st.button("로그인"):
             if pw == "admin@123": st.session_state.admin_logged_in = True; st.rerun()
     else:
-        new_notice = st.text_area("📢 공지사항 수정 (메인 화면에 반영됩니다)", st.session_state.safety_notice, height=150)
-        if st.button("업데이트"): st.session_state.safety_notice = new_notice; st.success("수정 완료")
+        new_notice = st.text_area("📢 공지사항 수정", st.session_state.safety_notice, height=150)
+        if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("수정 완료")
         if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
