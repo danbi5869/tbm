@@ -22,7 +22,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [팀 명단 데이터 - 자동완성을 위해 필요]
+# [팀 명단 데이터]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"],
@@ -51,7 +51,7 @@ team_data = {
     "탐상": ["박윤찬", "이동호"]
 }
 
-# [UI 디자인]
+# [UI 디자인 - 톤다운 버전]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
@@ -116,7 +116,6 @@ if sheet:
         with c1:
             selected_team = st.selectbox("소속 부서", list(team_data.keys()), key="dept_sel")
         with c2:
-            # ✅ 이름을 직접 치지 않고 명단에서 선택 (타이핑하면 자동완성됨)
             input_name = st.selectbox("성함 선택", team_data[selected_team], key="name_sel")
         
         job_name = st.text_input("금일 작업명", key="job_input", placeholder="작업명을 입력하세요")
@@ -141,50 +140,53 @@ if sheet:
                     st.balloons()
                     time.sleep(2); st.rerun()
 
-    # --- [TAB 2: 전체 점검 현황] ---
+    # --- [TAB 2: 전체 점검 현황 - 검색 기반 조회] ---
     with tab2:
-        st.subheader("📊 점검 현황 조회")
+        st.subheader("📊 점검 현황 검색")
+        st.write("조회하고 싶은 인원의 성함을 입력하세요.")
+        
         c_date, c_search = st.columns(2)
         with c_date: 
             s_date = st.date_input("📅 날짜 선택", datetime.date.today())
         with c_search:
-            # ✅ '노'만 쳐도 조회되도록 텍스트 검색창 추가
-            name_query = st.text_input("👤 이름 검색 (예: 노)", placeholder="이름 일부 입력")
+            # ✅ 초기값은 빈칸으로 두어, 입력 전에는 아무것도 검색되지 않게 함
+            name_query = st.text_input("👤 이름 검색 (예: 노)", placeholder="이름을 입력하면 데이터가 나타납니다.")
             
         s_date_str = s_date.isoformat()
         
-        try:
-            raw_data = sheet.get_all_values()
-            if len(raw_data) > 1:
-                all_df = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
-                if '성함' in all_df.columns: all_df = all_df.rename(columns={'성함': '이름'})
+        if name_query: # ✅ 이름 입력값이 있을 때만 아래 로직 실행
+            try:
+                raw_data = sheet.get_all_values()
+                if len(raw_data) > 1:
+                    all_df = pd.DataFrame(raw_data[1:], columns=[h.strip() for h in raw_data[0]])
+                    if '성함' in all_df.columns: all_df = all_df.rename(columns={'성함': '이름'})
 
-                # 1단계: 날짜 필터링
-                df_filtered = all_df[all_df['날짜'] == s_date_str]
-                
-                # 2단계: 이름 검색어 필터링 (요청하신 기능)
-                if name_query:
-                    df_filtered = df_filtered[df_filtered['이름'].str.contains(name_query, na=False)]
+                    # 날짜와 이름 포함 여부로 필터링
+                    df_filtered = all_df[(all_df['날짜'] == s_date_str) & (all_df['이름'].str.contains(name_query, na=False))]
 
-                if not df_filtered.empty:
-                    st.metric(f"검색 결과", f"{len(df_filtered)}명")
-                    st.dataframe(df_filtered[['날짜', '시간', '소속', '이름', '작업명', '상태']], use_container_width=True, hide_index=True)
-                else:
-                    st.info("검색 조건에 맞는 기록이 없습니다.")
-        except: st.error("데이터 로딩 오류")
+                    if not df_filtered.empty:
+                        st.metric(f"'{name_query}' 검색 결과", f"{len(df_filtered)}건")
+                        st.dataframe(df_filtered[['날짜', '시간', '소속', '이름', '작업명', '상태']], use_container_width=True, hide_index=True)
+                    else:
+                        st.info(f"'{name_query}'님에 대한 해당 날짜의 기록이 없습니다.")
+            except: 
+                st.error("데이터 로딩 중 오류가 발생했습니다.")
+        else:
+            st.info("💡 성함을 입력하시면 점검 기록을 확인하실 수 있습니다.")
 
     # --- [TAB 3: 관리자 설정] ---
     with tab3:
         st.subheader("⚙️ 관리자 설정")
         if not st.session_state.admin_logged_in:
-            admin_pw = st.text_input("비밀번호", type="password")
-            if st.button("인증"):
+            admin_pw = st.text_input("관리자 비밀번호", type="password")
+            if st.button("인증하기"):
                 if admin_pw == "admin@123":
                     st.session_state.admin_logged_in = True; st.rerun()
-                else: st.error("틀림")
+                else: st.error("비밀번호가 틀렸습니다.")
         else:
-            updated_notice = st.text_area("공지 수정", st.session_state.safety_notice, height=200)
-            if st.button("저장"):
+            st.success("🔓 관리자 모드")
+            updated_notice = st.text_area("📢 안전 지시사항 수정", st.session_state.safety_notice, height=200)
+            if st.button("수정 내용 저장"):
                 st.session_state.safety_notice = updated_notice; st.rerun()
             if st.button("로그아웃"):
                 st.session_state.admin_logged_in = False; st.rerun()
