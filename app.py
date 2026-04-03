@@ -24,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# [3. 사용자 데이터] (80명 명단 유지)
+# [3. 사용자 데이터 (80명 명단)]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -64,7 +64,7 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 디자인 설정 (2번 네이비)]
+# [5. 스타일 설정]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -72,11 +72,10 @@ st.markdown("""
         .main-header { background-color: #1E3A8A; padding: 1.2rem 0; border-radius: 0 0 15px 15px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .main-header h1 { color: white !important; text-align: center; font-size: 2rem; margin: 0; }
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .stButton > button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important; margin-bottom: 12px; transition: 0.2s; }
-        .stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
+        .stButton > button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important; margin-bottom: 12px; }
         div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; border: none !important; height: 2.8rem; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; border: none !important; height: 3.8rem; }
-        .notice-box { background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #1E3A8A; }
+        .search-hint { background-color: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 14px; color: #334155; margin-top: -15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -99,29 +98,29 @@ elif st.session_state.page == "tbm_write":
         st.rerun()
     
     st.subheader("🏗️ TBM 점검 작성")
-    display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'<div class="notice-box"><b>📋 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
     
     c1, c2 = st.columns(2)
     with c1:
         selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2:
-        # ✅ 성함 조회 기능 복구
-        final_name = st.text_input("성함 입력", placeholder="성함을 입력하세요").strip()
-        if final_name:
-            # 선택한 부서 명단에서 입력한 글자가 포함된 이름 찾기
-            matches = [n for n in team_data[selected_team] if final_name in n]
-            if matches:
-                st.success(f"✔️ 확인됨: {', '.join(matches)}")
-            else:
-                st.warning("⚠️ 명단에 없습니다. 정확히 입력하세요.")
+        # ✅ 이름 입력 (한 글자만 쳐도 제안이 뜨도록 구현)
+        search_input = st.text_input("성함 입력", placeholder="성함을 입력하세요").strip()
+        
+    # ✅ 실시간 검색 제안 로직
+    final_name = search_input
+    if search_input:
+        matches = [name for name in team_data[selected_team] if search_input in name]
+        if matches:
+            st.markdown(f'<div class="search-hint">💡 명단 검색 결과: <b>{" , ".join(matches)}</b></div>', unsafe_allow_html=True)
+            # 만약 검색결과가 하나고 입력값과 같다면 그것을 사용, 아니면 입력한 값 그대로 사용
+        else:
+            st.markdown(f'<div class="search-hint">ℹ️ 명단에 없습니다. (신규 인원은 입력하신 이름으로 저장됩니다)</div>', unsafe_allow_html=True)
 
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
     st.write("**✅ 공통 안전점검 사항**")
     col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
     common_list = [{"작업명": "계획", "점검내용": "순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구", "점검내용": "안전모/화/장갑 착용", "확인": False}, {"작업명": "공구", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}, {"작업명": "구역", "점검내용": "출입통제/표지 설치", "확인": False}, {"작업명": "전원", "점검내용": "LOTO 적용 확인", "확인": False}, {"작업명": "비상", "점검내용": "소화기/연락망 확인", "확인": False}]
-    
     df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, width='stretch', column_config=col_config)
 
     df_specific = None
@@ -138,7 +137,7 @@ elif st.session_state.page == "tbm_write":
         elif sheet is None:
             st.error("❌ 시트 연결 실패")
         else:
-            with st.spinner('구글 시트 저장 중...'):
+            with st.spinner('저장 중...'):
                 try:
                     kst = timezone(timedelta(hours=9))
                     now = datetime.datetime.now(kst)
