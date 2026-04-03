@@ -16,7 +16,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [UI 디자인: 버튼과 헤더 강조]
+# [UI 디자인]
 st.markdown("""
     <style>
         header {visibility: hidden !important;}
@@ -36,7 +36,6 @@ st.markdown("""
             color: white;
             font-weight: bold;
             font-size: 1.3em;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -103,8 +102,6 @@ if sheet:
         
         all_checked = edited_df[h_check].all() 
         status = "정상" if all_checked else "조치 필요"
-        
-        # ✅ 특이사항(비고) 입력란 삭제됨
 
         st.write("✒️ **서명**")
         canvas_result = st_canvas(
@@ -120,7 +117,6 @@ if sheet:
             else:
                 with st.spinner('데이터를 저장 중입니다...'):
                     now = datetime.datetime.now()
-                    # 시트 저장 데이터: 날짜, 소속, 성함, 작업명, 상태, 시간, 서명 (비고 제외)
                     new_row = [now.strftime('%Y-%m-%d'), selected_team, input_name, job_name, status, now.strftime('%H:%M:%S'), "✅ 완료"]
                     try:
                         sheet.append_row(new_row)
@@ -132,8 +128,11 @@ if sheet:
                         st.error(f"저장 중 오류가 발생했습니다: {e}")
 
     with tab2:
-        st.subheader("📊 금일 점검 현황")
-        today_str = datetime.date.today().isoformat()
+        st.subheader("📊 점검 현황 조회")
+        
+        # ✅ 날짜 선택 기능 추가
+        search_date = st.date_input("조회할 날짜를 선택하세요", datetime.date.today())
+        search_date_str = search_date.isoformat()
         
         try:
             raw_data = sheet.get_all_values()
@@ -141,24 +140,23 @@ if sheet:
                 header = [h.strip() for h in raw_data[0]]
                 all_df = pd.DataFrame(raw_data[1:], columns=header)
                 
-                # '서명' 열 이름을 '서명확인'으로 변경하여 보여줌
                 if '서명' in all_df.columns:
                     all_df = all_df.rename(columns={'서명': '서명확인'})
                 if '성함' in all_df.columns:
                     all_df = all_df.rename(columns={'성함': '이름'})
 
                 if '날짜' in all_df.columns:
-                    today_df = all_df[all_df['날짜'] == today_str]
-                    st.metric("오늘 완료 인원", f"{len(today_df)}명")
+                    # ✅ 선택한 날짜로 필터링
+                    filtered_df = all_df[all_df['날짜'] == search_date_str]
                     
-                    if not today_df.empty:
-                        # ✅ 현황판에서도 비고 제외 (날짜, 시간, 소속, 이름, 작업명, 상태, 서명확인)
+                    st.metric(f"{search_date_str} 완료 인원", f"{len(filtered_df)}명")
+                    
+                    if not filtered_df.empty:
                         display_cols = ['날짜', '시간', '소속', '이름', '작업명', '상태', '서명확인']
-                        available_cols = [c for c in display_cols if c in today_df.columns]
-                        
-                        st.dataframe(today_df[available_cols], use_container_width=True, hide_index=True)
+                        available_cols = [c for c in display_cols if c in filtered_df.columns]
+                        st.dataframe(filtered_df[available_cols], use_container_width=True, hide_index=True)
                     else:
-                        st.info("오늘 점검을 완료한 인원이 아직 없습니다.")
+                        st.info(f"{search_date_str}에 완료된 점검 기록이 없습니다.")
                 else:
                     st.error("시트에서 '날짜' 열을 찾을 수 없습니다.")
             else:
