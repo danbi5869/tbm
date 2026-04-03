@@ -64,50 +64,85 @@ def get_sheet():
 
 sheet = get_sheet()
 
-# [5. 스타일 디자인]
+# [5. 스타일 디자인 - 가운데 정렬 강화]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
         header { visibility: hidden !important; }
-        .main-header { background-color: #1E3A8A; padding: 1rem 0; border-radius: 0 0 15px 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .main-header h1 { color: white !important; text-align: center; font-size: 2rem; margin: 0; }
+        .main-header { background-color: #1E3A8A; padding: 1.5rem 0; border-radius: 0 0 20px 20px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .main-header h1 { color: white !important; text-align: center; font-size: 2.2rem; margin: 0; }
+        
+        /* 중앙 정렬 컨테이너 */
+        .centered-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
         .block-container { background-color: #ffffff; padding: 2rem !important; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .stButton>button { width: 100%; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; transition: 0.1s; }
+        
+        .stButton>button { width: 100%; max-width: 400px; border-radius: 10px; height: 4.5rem; font-size: 19px !important; font-weight: 700 !important; transition: 0.1s; margin: 0 auto; display: block; }
+        
         div.stButton > button:has(div:contains("TBM 점검 작성")),
         div.stButton > button:has(div:contains("현황 확인")),
         div.stButton > button:has(div:contains("관리자 페이지")) {
             background-color: #ffffff; border: 2px solid #1E3A8A; color: #1E3A8A !important;
         }
         .stButton>button:hover { background-color: #1E3A8A !important; color: white !important; }
-        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; }
+        
+        div.stButton > button:has(div:contains("메인으로")) { background-color: #E2E8F0 !important; color: #475569 !important; height: 2.5rem; border: none !important; max-width: 150px; }
         div.stButton > button:has(div:contains("저장하기")) { background-color: #DC2626 !important; color: white !important; height: 3.5rem; border: none !important; }
-        .notice-box { background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #1E3A8A; font-size: 16px; }
+        
+        .notice-box { 
+            background-color: #DBEAFE; 
+            border-top: 4px solid #1E3A8A; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 30px; 
+            color: #1E3A8A; 
+            font-size: 17px; 
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # [6. 화면 전환 로직]
 
-# 🏠 메인 화면 (안전 지시사항 포함)
+# 🏠 메인 화면 (가운데 정렬 적용)
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
     
-    # [수정] 메인 화면 최상단에 안전 지시사항 배치
-    display_text = st.session_state.safety_notice.replace("\n", "<br>")
-    st.markdown(f'<div class="notice-box"><b>📢 금일 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
+    # 중앙 정렬을 위한 컨테이너 시작
+    st.markdown('<div class="centered-container">', unsafe_allow_html=True)
     
-    if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"; st.rerun()
-    st.write("") # 간격 조절
-    if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"; st.rerun()
-    st.write("") # 간격 조절
-    if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"; st.rerun()
+    display_text = st.session_state.safety_notice.replace("\n", "<br>")
+    st.markdown(f'<div class="notice-box"><b>📢 금일 안전 지시사항</b><br><br>{display_text}</div>', unsafe_allow_html=True)
+    
+    # 버튼 배치를 위한 컬럼 활용 (중앙 집중을 위해 빈 공간 생성)
+    col_left, col_mid, col_right = st.columns([1, 4, 1])
+    with col_mid:
+        if st.button("📝 금일 TBM 점검 작성"):
+            st.session_state.page = "tbm_write"; st.rerun()
+        st.write("") 
+        if st.button("📊 실시간 점검 현황 확인"):
+            st.session_state.page = "tbm_status"; st.rerun()
+        st.write("") 
+        if st.button("⚙️ 시스템 관리자 페이지"):
+            st.session_state.page = "tbm_admin"; st.rerun()
+            
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"; st.rerun()
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("⬅️ 메인으로"):
+            st.session_state.page = "main"; st.rerun()
         
     st.subheader("🏗️ TBM 점검 작성")
     
