@@ -131,4 +131,4 @@ elif st.session_state.page == "tbm_write":
         st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, width='stretch', column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
-    canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=13
+    canvas_result = st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, drawing_mode="freedraw", key="canvas_tbm")
