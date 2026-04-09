@@ -16,7 +16,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [2. 구글 시트 연결 및 공지사항 로드]
+# [2. 구글 시트 연결]
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -46,14 +46,13 @@ if "page" not in st.session_state:
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
-# [4. 스타일 디자인 - 박스/버튼 너비 칼맞춤]
+# [4. 스타일 디자인 - 너비 350px 칼맞춤]
 st.markdown("""
     <style>
         header { visibility: hidden !important; }
         footer { visibility: hidden !important; }
         .stApp { background-color: #F0F8FF; }
         
-        /* 헤더 디자인 */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1.5rem 0.5rem; 
@@ -61,16 +60,20 @@ st.markdown("""
             text-align: center; 
             margin-bottom: 2rem;
         }
-        .header-tbm { color: white !important; font-size: 2.5rem !important; font-weight: 900 !important; margin: 0; }
         
-        /* 핵심: 모든 요소의 너비를 동일하게 강제 고정 */
-        .unified-content {
-            width: 350px !important;
-            margin: 0 auto !important;
-            box-sizing: border-box !important;
+        /* 모든 요소의 부모 컨테이너 중앙 정렬 */
+        [data-testid="stVerticalBlock"] {
+            align-items: center !important;
+            gap: 0px !important;
         }
 
-        /* 공지사항 박스 - 너비 고정 및 테두리 포함 */
+        /* 공지사항 박스와 버튼 너비를 350px로 강제 고정 */
+        .unified-content {
+            width: 350px !important;
+            box-sizing: border-box !important;
+            margin: 0 auto !important;
+        }
+
         .notice-box { 
             background-color: #DBEAFE; 
             border: 2px solid #1E3A8A; 
@@ -78,13 +81,13 @@ st.markdown("""
             border-radius: 15px; 
             margin-bottom: 15px;
             text-align: left;
-            width: 350px !important; /* 고정 너비 */
+            width: 350px !important;
             box-sizing: border-box !important;
         }
 
-        /* 버튼 - 너비 고정 및 테두리 포함 */
+        /* 스트림릿 버튼 스타일 강제 고정 */
         div.stButton > button { 
-            width: 350px !important; /* 고정 너비 */
+            width: 350px !important;
             min-height: 4rem;
             border-radius: 15px; 
             font-weight: 700; 
@@ -92,25 +95,15 @@ st.markdown("""
             border: 2px solid #1E3A8A;
             background-color: white;
             color: #1E3A8A;
-            margin-bottom: 10px !important;
+            margin-bottom: 12px !important;
             box-sizing: border-box !important;
-            display: block !important;
-            
-            /* 글자 관련 설정 */
             white-space: normal !important;
-            line-height: 1.2 !important;
             word-break: keep-all !important;
         }
         
         div.stButton > button:hover {
             background-color: #1E3A8A !important;
             color: white !important;
-        }
-
-        /* Streamlit 내부 간격 제거 */
-        [data-testid="stVerticalBlock"] {
-            gap: 0px !important;
-            align-items: center !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -136,22 +129,22 @@ team_data = {
 if st.session_state.page == "main":
     st.markdown('''
         <div class="main-header">
-            <h1 class="header-tbm">⛑️ TBM</h1>
-            <p style="color:white; margin:0;">안전점검 시스템</p>
+            <h1 style="color:white; margin:0;">⛑️ TBM</h1>
+            <p style="color:white; margin:0; opacity:0.8;">안전점검 시스템</p>
         </div>
     ''', unsafe_allow_html=True)
     
-    # 1. 공지사항 박스 (너비 350px 고정)
+    # 공지사항
     current_notice = load_notice()
     display_text = current_notice.replace("\n", "<br>")
     st.markdown(f'''
-        <div class="notice-box unified-content">
+        <div class="notice-box">
             <b style="color:#1E3A8A;">📢 금일 안전 지시사항</b><br>
-            <span style="color:#1E3A8A; font-size:0.9rem;">{display_text}</span>
+            <span style="color:#1E3A8A; font-size:0.95rem;">{display_text}</span>
         </div>
     ''', unsafe_allow_html=True)
     
-    # 2. 버튼 (너비 350px 고정)
+    # 버튼 (CSS에서 350px로 고정됨)
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"
         st.rerun()
@@ -162,10 +155,10 @@ if st.session_state.page == "main":
         st.session_state.page = "tbm_admin"
         st.rerun()
 
-# [6~8 페이지 로직 생략 없이 그대로 유지]
+# [6. 작성 페이지]
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
-    st.subheader("📝 점검 작성")
-    c1, c2 = st.columns(2)
-    with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
-    with c2: final_name =
+    if st.button("⬅️ 메인으로 돌아가기"):
+        st.session_state.page = "main"
+        st.rerun()
+    
+    st.subheader("📝
