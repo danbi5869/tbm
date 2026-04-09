@@ -16,24 +16,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [2. 구글 시트 연결]
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-
-@st.cache_resource
-def get_sheet():
-    try:
-        creds_info = st.secrets["gcp_service_account"]
-        creds = Credentials.from_service_account_info(creds_info, scopes=scope)
-        client = gspread.authorize(creds)
-        # 시트 ID가 정확한지 다시 확인하세요.
-        return client.open_by_key("1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc").get_worksheet(0)
-    except Exception as e:
-        st.error(f"구글 시트 연결 실패: {e}")
-        return None
-
-sheet = get_sheet()
-
-# [3. 세션 상태 초기화]
+# [2. 세션 상태 초기화]
 if "page" not in st.session_state:
     st.session_state.page = "main"
 if "admin_logged_in" not in st.session_state:
@@ -41,7 +24,7 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = "1. 개인 보호구 착용 철저\n2. 작업 전 주변 위험요소 제거\n3. 상호 안전 확인 후 작업 개시"
 
-# 팀 데이터 유지
+# [3. 데이터 정의]
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
     "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
@@ -67,7 +50,23 @@ specific_checks = {
     "시험/가동": [{"항목": "신호", "점검내용": "운전/정지 신호수 배치", "확인": False}, {"항목": "비상", "점검내용": "E-Stop 버튼 확인", "확인": False}]
 }
 
-# [4. 스타일 디자인]
+# [4. 구글 시트 연결]
+@st.cache_resource
+def get_sheet():
+    try:
+        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds_info = st.secrets["gcp_service_account"]
+        creds = Credentials.from_service_account_info(creds_info, scopes=scope)
+        client = gspread.authorize(creds)
+        # 본인의 시트 ID가 맞는지 꼭 확인하세요
+        return client.open_by_key("1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc").get_worksheet(0)
+    except Exception as e:
+        st.error(f"⚠️ 구글 시트 연결 오류: {e}")
+        return None
+
+sheet = get_sheet()
+
+# [5. 스타일 디자인]
 st.markdown("""
     <style>
         .stApp { background-color: #F0F8FF; }
@@ -76,24 +75,24 @@ st.markdown("""
             background-color: #1E3A8A; padding: 1.2rem 0.5rem; border-radius: 0 0 20px 20px; 
             margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;
         }
-        .main-header h1 { color: white !important; font-size: 1.8rem !important; margin: 0; }
+        .main-header h1 { color: white !important; font-size: clamp(1rem, 5.5vw, 2.2rem) !important; margin: 0; }
         .notice-box { 
             background-color: #DBEAFE; border-left: 5px solid #1E3A8A; padding: 15px 20px; 
-            border-radius: 12px; color: #1E3A8A; margin-bottom: 20px; width: 100%; max-width: 420px;
+            border-radius: 12px; color: #1E3A8A; margin-bottom: 20px; width: 95%; max-width: 420px;
         }
         div.stButton > button { 
             width: 100% !important; max-width: 420px !important; min-height: 4rem;
-            border-radius: 12px; font-weight: 700 !important; border: 2px solid #1E3A8A !important;
+            border-radius: 12px; font-weight: 700 !important; border: 2.5px solid #1E3A8A !important;
             background-color: white !important; color: #1E3A8A !important;
         }
         div.stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# [5. 화면 전환 로직]
+# [6. 화면 전환 로직]
 if st.session_state.page == "main":
     st.markdown('<div class="main-header"><h1>⛑️ TBM 안전점검 시스템</h1></div>', unsafe_allow_html=True)
-    st.markdown('<div style="display: flex; flex-direction: column; align-items: center;">', unsafe_allow_html=True)
+    st.markdown('<div style="display: flex; flex-direction: column; align-items: center; width: 100%;">', unsafe_allow_html=True)
     
     display_text = st.session_state.safety_notice.replace("\n", "<br>")
     st.markdown(f'<div class="notice-box"><b>📢 금일 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
@@ -108,10 +107,15 @@ if st.session_state.page == "main":
 
 # 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"; st.rerun()
-    
+    nav_col1, nav_col2, _ = st.columns([1, 1, 2])
+    with nav_col1:
+        if st.button("⬅️ 메인"): st.session_state.page = "main"; st.rerun()
+    with nav_col2:
+        if st.button("📊 현황"): st.session_state.page = "tbm_status"; st.rerun()
+            
+    st.markdown("---")
     st.subheader("🏗️ TBM 점검 작성")
+    
     c1, c2 = st.columns(2)
     with c1: selected_team = st.selectbox("부서 선택", list(team_data.keys()))
     with c2: final_name = st.text_input("성함 입력").strip()
@@ -119,74 +123,38 @@ elif st.session_state.page == "tbm_write":
     selected_job = st.selectbox("금일 작업명", ["", "공통작업", "분해작업", "중량물취급", "전기작업", "세척작업", "조립작업", "시험/가동"])
 
     st.write("**✅ 공통 안전점검 사항**")
-    common_list = [
-        {"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False},
-        {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False},
-        {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False},
-        {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}
-    ]
-    df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True)
-
-    if selected_job and selected_job not in ["", "공통작업"]:
-        st.write(f"**⚠️ {selected_job} 추가 점검**")
-        df_spec = st.data_editor(pd.DataFrame(specific_checks[selected_job]), hide_index=True, use_container_width=True)
+    col_config = {"작업명": st.column_config.TextColumn("항목", width=60), "점검내용": st.column_config.TextColumn("점검내용", width=220), "확인": st.column_config.CheckboxColumn("확인", width=40)}
+    common_list = [{"작업명": "작업계획", "점검내용": "작업순서 및 역할 분담 완료", "확인": False}, {"작업명": "보호구착용", "점검내용": "안전모/화/장갑 등 착용", "확인": False}, {"작업명": "공구점검", "점검내용": "사용 공구 상태 이상없음", "확인": False}, {"작업명": "작업장정리", "점검내용": "바닥 미끄럼/장애물 제거", "확인": False}]
+    
+    df_common = st.data_editor(pd.DataFrame(common_list), hide_index=True, use_container_width=True, column_config=col_config)
 
     st.write("**✒️ 최종 확인 서명**")
-    st_canvas(stroke_width=3, stroke_color="#000000", background_color="#f8f9fa", height=130, width=310, key="canvas_tbm")
+    st_canvas(stroke_width=3, stroke_color="#000", background_color="#f8f9fa", height=130, width=310, key="canvas_tbm")
 
     if st.button("💾 점검 완료 및 저장"):
-        # 모든 항목 체크 여부 확인 로직 보완
         if not final_name or not selected_job or not all(df_common["확인"]):
-            st.warning("⚠️ 성함 입력 및 모든 체크항목에 체크해 주세요.")
+            st.warning("⚠️ 성함을 입력하고 모든 체크박스를 확인해 주세요.")
+        elif sheet is None:
+            st.error("⚠️ 시트 연결 오류! 관리자에게 문의하세요.")
         else:
-            try:
-                kst = timezone(timedelta(hours=9))
-                now = datetime.datetime.now(kst)
-                if sheet:
-                    sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"])
-                    st.success("✅ 저장되었습니다!")
-                    time.sleep(1)
+            with st.spinner('데이터 저장 중...'):
+                try:
+                    kst = timezone(timedelta(hours=9))
+                    now = datetime.datetime.now(kst)
+                    # 시트 데이터 추가 (날짜, 부서, 이름, 작업, 상태, 시간, 확인)
+                    row = [now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅ 완료"]
+                    sheet.append_row(row)
+                    st.success("✅ 성공적으로 저장되었습니다!")
+                    st.balloons()
+                    time.sleep(1.5)
                     st.session_state.page = "main"; st.rerun()
-                else:
-                    st.error("구글 시트 연결이 끊어져 있습니다.")
-            except:
-                st.error("데이터 저장 중 오류가 발생했습니다.")
+                except Exception as e:
+                    st.error(f"저장 중 오류 발생: {e}")
 
 # 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"; st.rerun()
+    if st.button("⬅️ 메인으로 돌아가기"): st.session_state.page = "main"; st.rerun()
     st.subheader("📊 실시간 점검 현황")
+    
     try:
-        raw_data = sheet.get_all_values()
-        if len(raw_data) > 1:
-            df_all = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            st.dataframe(df_all.iloc[::-1], use_container_width=True, hide_index=True)
-        else:
-            st.info("기록된 데이터가 없습니다.")
-    except:
-        st.error("데이터를 불러올 수 없습니다.")
-
-# ⚙️ 관리자 페이지
-elif st.session_state.page == "tbm_admin":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"; st.rerun()
-        
-    if not st.session_state.admin_logged_in:
-        pw = st.text_input("비밀번호", type="password")
-        if st.button("로그인"):
-            if pw == "admin@123":
-                st.session_state.admin_logged_in = True
-                st.rerun()
-            else:
-                st.error("비밀번호가 틀렸습니다.")
-    else:
-        new_notice = st.text_area("📢 금일 안전 지시사항 수정", st.session_state.safety_notice, height=150)
-        if st.button("💾 공지사항 저장"):
-            st.session_state.safety_notice = new_notice
-            st.success("저장되었습니다.")
-            time.sleep(1)
-            st.rerun()
-        if st.button("🔓 로그아웃"):
-            st.session_state.admin_logged_in = False
-            st.rerun()
+        raw_data = sheet.get_
