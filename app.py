@@ -254,7 +254,7 @@ elif st.session_state.page == "tbm_status":
     try:
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
-            df_all = pd.DataFrame(raw[8:] for r in raw_date[1:]], columns=raw_data[0][:8])
+            df_all = pd.DataFrame(raw[:8] for r in raw_date[1:]], columns=raw_data[0][:8])
             col1, col2 = st.columns(2)
             with col1:
                 s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
