@@ -254,21 +254,25 @@ elif st.session_state.page == "tbm_status":
     try:
         raw_data = sheet.get_all_values()
         if len(raw_data) > 1:
-            df_all = pd.DataFrame(raw[:8] for r in raw_date[1:]], columns=raw_data[0][:8])
+            # [해결 포인트] SyntaxError 수정 및 데이터 범위를 A~H열(8칸)로 고정
+            header = ["날짜", "소속", "이름", "작업명", "상태", "시간", "서명", "비고"]
+            data_rows = [r[:8] for r in raw_data[1:]] 
+            df_all = pd.DataFrame(data_rows, columns=header)
+            
             col1, col2 = st.columns(2)
             with col1:
                 s_date = st.date_input("날짜 선택", datetime.datetime.now(timezone(timedelta(hours=9))).date())
             with col2:
                 s_name = st.text_input("이름 검색", placeholder="검색할 이름 입력").strip()
             
+            # 필터링 로직
             df_f = df_all[df_all['날짜'] == s_date.isoformat()]
             if s_name:
-                name_col = df_all.columns[2] 
-                df_f = df_f[df_f[name_col].str.contains(s_name, na=False)]
+                df_f = df_f[df_f['이름'].str.contains(s_name, na=False)]
             
             if not df_f.empty:
                 st.write(f"🔎 검색 결과: {len(df_f)}건")
-                st.dataframe(df_f.iloc[::-1], width='stretch', hide_index=True)
+                st.dataframe(df_f.iloc[::-1], use_container_width=True, hide_index=True)
             else:
                 st.info("해당 조건의 데이터가 없습니다.")
         else:
@@ -292,10 +296,29 @@ elif st.session_state.page == "tbm_admin":
                 st.error("비밀번호가 틀렸습니다.")
     else:
         st.subheader("⚙️ 시스템 설정")
+        
+        # [기능 추가] 구글 시트 Z1에서 기존 공지사항 불러오기 버튼
+        if st.button("🔄 시트(Z1)에서 공지사항 불러오기"):
+            try:
+                z1_value = sheet.acell('Z1').value
+                if z1_value:
+                    st.session_state.safety_notice = z1_value
+                    st.success("시트에서 공지사항을 가져왔습니다.")
+                    st.rerun()
+            except:
+                st.error("시트에서 데이터를 읽지 못했습니다.")
+
         new_notice = st.text_area("📢 공지사항 수정", st.session_state.safety_notice, height=150)
-        if st.button("공지사항 업데이트"):
-            st.session_state.safety_notice = new_notice
-            st.success("공지사항이 저장되었습니다.")
+        
+        if st.button("💾 공지사항 업데이트 및 시트 저장"):
+            try:
+                # 1. 앱 세션 상태 업데이트
+                st.session_state.safety_notice = new_notice
+                # 2. 구글 시트 Z1 칸에 저장 (데이터와 겹치지 않음)
+                sheet.update_acell('Z1', new_notice)
+                st.success("공지사항이 앱과 구글 시트(Z1)에 저장되었습니다.")
+            except Exception as e:
+                st.error(f"시트 저장 실패: {e}")
         
         st.markdown("---")
         if st.button("로그아웃"):
