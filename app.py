@@ -48,31 +48,15 @@ if "admin_logged_in" not in st.session_state:
 if "safety_notice" not in st.session_state:
     st.session_state.safety_notice = load_notice()
 
-# 팀 데이터 (기존 유지)
-team_data = {
-    "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
-    "기술": ["황종연"], "입출창": ["이천형", "전동길", "허유정", "서대영"],
-    "중요장치장": ["송진수", "임대권", "이준혁", "김명철"], "전기/제동장": ["손해진", "주승용"],
-    "전기": ["이경민", "금창욱", "권혁진", "임의진", "박태규"], "판토": ["유문일", "이현우"],
-    "제동": ["오성윤", "허성우", "김원경", "전창근", "서준영", "이진호"], "정비": ["김성태", "배욱"],
-    "차체/수선장": ["최덕수", "반상민"], "출입문": ["김지훈", "추동일", "한지훈", "백승주", "최창열", "윤성현"],
-    "차체": ["박노갑", "박종환", "최규현"], "냉방장치": ["김정혁", "김기훈", "설태길"],
-    "회전기장": ["박기하", "이성보"], "TM": ["박석희", "오현택", "유상훈"],
-    "CM": ["안상복", "김태경"], "대차장": ["임청용", "정호영"],
-    "댐퍼/에어스프링": ["정성목", "이태수"], "기초제동1": ["우원진", "연제동", "이창록"],
-    "기초제동2": ["김영일", "정진영", "허재혁"], "윤축/축상장": ["김성수", "이성문"],
-    "윤축": ["정승욱", "나용환", "박주현"], "축상": ["박상언", "윤종혁", "방건동", "박준수"],
-    "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
-}
-
-# [4. 스타일 디자인 - 중앙 정렬 강화]
+# [4. 스타일 디자인 - 버튼 자체를 중앙으로 이동]
 st.markdown("""
     <style>
+        /* 기본 레이아웃 설정 */
         header { visibility: hidden !important; }
         footer { visibility: hidden !important; }
         .stApp { background-color: #F0F8FF; }
         
-        /* 메인 헤더 */
+        /* 메인 헤더 (상단 파란색 박스) */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1.8rem 0.5rem; 
@@ -87,15 +71,17 @@ st.markdown("""
         .header-sub-box { display: inline-block; background-color: rgba(255, 255, 255, 0.15); padding: 5px 20px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.3); margin-top: 5px; }
         .header-sub-text { color: #FFFFFF !important; font-size: 1.2rem !important; font-weight: 500 !important; margin: 0; letter-spacing: 1px; }
         
-        /* 버튼 중앙 정렬 및 디자인 */
+        /* 핵심: 버튼 자체를 화면 가운데로 배치 */
         div.stButton {
-            display: flex;
-            justify-content: center;
+            display: flex !important;
+            justify-content: center !important; /* 가로 중앙 정렬 */
+            width: 100% !important;
+            margin: 0 auto !important;
         }
         
         div.stButton > button { 
-            width: 90% !important; 
-            max-width: 380px !important; 
+            width: 85% !important; /* 버튼 너비 설정 */
+            max-width: 350px !important; 
             min-height: 4.8rem;
             border-radius: 18px; 
             font-weight: 700; 
@@ -103,26 +89,32 @@ st.markdown("""
             border: 2.5px solid #1E3A8A;
             background-color: white;
             color: #1E3A8A;
-            margin: 10px auto !important; /* 자동 여백으로 중앙 고정 */
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             transition: 0.2s;
+            display: block !important;
+            margin: 10px 0 !important; /* 위아래 간격 */
         }
 
         div.stButton > button:hover {
             background-color: #1E3A8A !important;
             color: white !important;
+            transform: translateY(-2px);
         }
         
-        /* 공지사항 박스 중앙 정렬 */
-        .notice-container { display: flex; justify-content: center; width: 100%; }
+        /* 공지사항 박스 중앙 배치 */
+        .center-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
         .notice-box { 
             background-color: #DBEAFE; 
             border-left: 5px solid #1E3A8A; 
             padding: 18px; 
             border-radius: 12px; 
             margin-bottom: 25px;
-            width: 90%;
-            max-width: 380px;
+            width: 85%;
+            max-width: 350px;
             text-align: left;
         }
     </style>
@@ -142,44 +134,34 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    # 공지사항 박스
+    # 공지사항 중앙 배치
     current_notice = load_notice()
     display_text = current_notice.replace("\n", "<br>")
     st.markdown(f'''
-        <div class="notice-container">
+        <div class="center-wrapper">
             <div class="notice-box">
-                <b style="color:#1E3A8A; font-size: 1.1rem;">📢 금일 안전 지시사항</b><br>
-                <p style="margin-top: 8px; color: #1E3A8A; line-height: 1.5;">{display_text}</p>
+                <b style="color:#1E3A8A;">📢 금일 안전 지시사항</b><br>
+                <p style="margin-top: 8px; color: #1E3A8A;">{display_text}</p>
             </div>
         </div>
     ''', unsafe_allow_html=True)
     
-    # 버튼 섹션 (자동으로 스타일 시트에 의해 중앙 정렬됨)
-    if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"; st.rerun()
-        
-    if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"; st.rerun()
-        
-    if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"; st.rerun()
+    # 버튼 섹션 (CSS에서 정중앙 정렬 강제함)
+    st.button("📝 금일 TBM 점검 작성", on_click=lambda: setattr(st.session_state, 'page', 'tbm_write'))
+    st.button("📊 실시간 점검 현황 확인", on_click=lambda: setattr(st.session_state, 'page', 'tbm_status'))
+    st.button("⚙️ 시스템 관리자 페이지", on_click=lambda: setattr(st.session_state, 'page', 'tbm_admin'))
 
-# 📝 점검 작성 페이지
+# --- 페이지 이동 로직 (간소화) ---
 elif st.session_state.page == "tbm_write":
-    # (작성 페이지 로직 유지)
-    if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
+    st.button("⬅️ 메인으로", on_click=lambda: setattr(st.session_state, 'page', 'main'))
     st.subheader("🏗️ TBM 점검 작성")
-    # ... 나머지 코드 생략 (기존 것 사용) ...
+    # ... (기존 입력 폼 코드) ...
 
-# 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
-    # (현황 페이지 로직 유지)
-    if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
+    st.button("⬅️ 메인으로", on_click=lambda: setattr(st.session_state, 'page', 'main'))
     st.subheader("📊 실시간 점검 현황")
-    # ... 나머지 코드 생략 (기존 것 사용) ...
+    # ... (기존 데이터 시트 코드) ...
 
-# ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
-    # (관리자 페이지 로직 유지)
-    if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
-    # ... 나머지 코드 생략 (기존 것 사용) ...
+    st.button("⬅️ 메인으로", on_click=lambda: setattr(st.session_state, 'page', 'main'))
+    # ... (기존 관리자 로그인 코드) ...
