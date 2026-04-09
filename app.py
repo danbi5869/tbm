@@ -16,7 +16,7 @@ except:
 
 st.set_page_config(page_title="TBM 스마트 체크리스트", page_icon=img, layout="centered")
 
-# [2. 구글 시트 연결]
+# [2. 구글 시트 연결 및 공지사항 로드]
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
@@ -46,71 +46,6 @@ if "page" not in st.session_state:
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
-# [4. 스타일 디자인 - 너비 400px 일치 핵심]
-st.markdown("""
-    <style>
-        header { visibility: hidden !important; }
-        footer { visibility: hidden !important; }
-        .stApp { background-color: #F0F8FF; }
-        
-        /* 메인 헤더 박스 */
-        .main-header { 
-            background-color: #1E3A8A; 
-            padding: 1.8rem 0.5rem; 
-            border-radius: 0 0 30px 30px; 
-            text-align: center; 
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .header-tbm { color: white !important; font-size: 3rem !important; font-weight: 900 !important; margin: 0; }
-        .header-sub-text { color: #FFFFFF !important; font-size: 1.3rem !important; margin: 0; letter-spacing: 2px; }
-
-        /* 공지사항 박스와 버튼 너비 동일화 (400px 고정) */
-        .unified-box {
-            width: 100% !important;
-            max-width: 400px !important;
-            box-sizing: border-box !important;
-            margin: 0 auto 15px auto !important;
-        }
-
-        .notice-box { 
-            background-color: #DBEAFE; 
-            border: 2px solid #1E3A8A; 
-            padding: 15px; 
-            border-radius: 12px; 
-            text-align: left;
-        }
-
-        /* 버튼 스타일 강제 고정 */
-        div.stButton > button { 
-            width: 100% !important;
-            max-width: 400px !important;
-            min-height: 4.5rem;
-            border-radius: 15px; 
-            font-weight: 700; 
-            font-size: 1.1rem !important;
-            border: 2px solid #1E3A8A;
-            background-color: white;
-            color: #1E3A8A;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: block !important;
-            margin: 0 auto !important;
-        }
-        div.stButton > button:hover {
-            background-color: #1E3A8A !important;
-            color: white !important;
-        }
-
-        /* 중앙 정렬 */
-        .center-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 # 팀 데이터
 team_data = {
     "운영": ["김한규", "김병배", "엄기태", "한효석", "신기영", "한진희", "노단비", "박진용"],
@@ -128,88 +63,102 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
 
+# [4. 스타일 디자인 - 너비 400px 칼맞춤]
+st.markdown("""
+    <style>
+        header { visibility: hidden !important; }
+        footer { visibility: hidden !important; }
+        .stApp { background-color: #F0F8FF; }
+        
+        .main-header { 
+            background-color: #1E3A8A; 
+            padding: 1.8rem 0.5rem; 
+            border-radius: 0 0 30px 30px; 
+            text-align: center; 
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .header-top { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .header-emoji { font-size: 2.8rem !important; }
+        .header-tbm { color: white !important; font-size: 3rem !important; font-weight: 900 !important; margin: 0; }
+        .header-sub-box { display: inline-block; background-color: rgba(255, 255, 255, 0.15); padding: 5px 20px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.3); margin-top: 5px; }
+        .header-sub-text { color: #FFFFFF !important; font-size: 1.3rem !important; font-weight: 500 !important; margin: 0; letter-spacing: 2px; }
+
+        /* 너비 통일 핵심 CSS */
+        .unified-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .notice-box { 
+            background-color: #DBEAFE; 
+            border-left: 5px solid #1E3A8A; 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 20px;
+            width: 100% !important;
+            max-width: 400px !important;
+            box-sizing: border-box !important;
+        }
+        div.stButton > button { 
+            width: 100% !important; 
+            max-width: 400px !important; 
+            min-height: 4.5rem;
+            border-radius: 15px; 
+            font-weight: 700; 
+            font-size: 1.1rem !important;
+            border: 2px solid #1E3A8A;
+            background-color: white;
+            color: #1E3A8A;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+        }
+        div.stButton > button:hover { background-color: #1E3A8A !important; color: white !important; }
+    </style>
+""", unsafe_allow_html=True)
+
 # [5. 메인 화면 로직]
 if st.session_state.page == "main":
     st.markdown('''
         <div class="main-header">
-            <h1 class="header-tbm">⛑️ TBM</h1>
-            <p class="header-sub-text">안전점검 시스템</p>
+            <div class="header-top">
+                <span class="header-emoji">⛑️</span>
+                <span class="header-tbm">TBM</span>
+            </div>
+            <div class="header-sub-box">
+                <p class="header-sub-text">안전점검 시스템</p>
+            </div>
         </div>
     ''', unsafe_allow_html=True)
     
-    st.markdown('<div class="center-container">', unsafe_allow_html=True)
+    st.markdown('<div class="unified-container">', unsafe_allow_html=True)
     
-    # 1. 공지사항 박스 (unified-box 클래스로 너비 400px 고정)
     current_notice = load_notice()
     display_text = current_notice.replace("\n", "<br>")
     st.markdown(f'''
-        <div class="notice-box unified-box">
+        <div class="notice-box">
             <b>📢 금일 안전 지시사항</b><br>{display_text}
         </div>
     ''', unsafe_allow_html=True)
     
-    # 2. 버튼 (CSS에서 width 100%, max-width 400px로 일치됨)
     if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"
-        st.rerun()
+        st.session_state.page = "tbm_write"; st.rerun()
     if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"
-        st.rerun()
+        st.session_state.page = "tbm_status"; st.rerun()
     if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"
-        st.rerun()
+        st.session_state.page = "tbm_admin"; st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# [6. 작성 페이지]
+# [6. 작성 페이지 로직]
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"
-        st.rerun()
+    if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
     st.subheader("🏗️ TBM 점검 작성")
     
     selected_team = st.selectbox("부서 선택", list(team_data.keys()))
-    final_name = st.text_input("성함 입력").strip()
-    selected_job = st.selectbox("작업명", ["공통", "분해", "중량물", "전기", "세척", "조립", "시험"])
+    user_name = st.text_input("성함 입력").strip()
+    selected_job = st.selectbox("작업명", ["공통 정비", "분해 및 조립", "중량물 취급", "전기 작업", "기타"])
     
     st.write("**✅ 체크리스트**")
-    items = pd.DataFrame([
-        {"항목": "보호구", "내용": "개인보호구 착용", "확인": False},
-        {"항목": "공구/정리", "내용": "작업장 정리정돈", "확인": False}
-    ])
-    st.data_editor(items, hide_index=True, use_container_width=True)
-    
-    st.write("**✒️ 최종 확인 서명**")
-    st_canvas(stroke_width=3, stroke_color="#000", background_color="#f8f9fa", height=150, key="canvas_main")
-    
-    if st.button("제출하기"):
-        if final_name:
-            st.success("점검표가 제출되었습니다.")
-            time.sleep(1)
-            st.session_state.page = "main"
-            st.rerun()
-        else:
-            st.warning("성함을 입력해 주세요.")
-
-# [7. 현황 페이지]
-elif st.session_state.page == "tbm_status":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"
-        st.rerun()
-    st.subheader("📊 실시간 점검 현황")
-    try:
-        raw_data = data_sheet.get_all_values()
-        if len(raw_data) > 1:
-            df = pd.DataFrame(raw_data[1:], columns=raw_data[0])
-            st.dataframe(df.iloc[::-1], use_container_width=True, hide_index=True)
-        else:
-            st.info("표시할 데이터가 없습니다.")
-    except:
-        st.error("데이터 로드 실패")
-
-# [8. 관리자 페이지]
-elif st.session_state.page == "tbm_admin":
-    if st.button("⬅️ 메인으로"):
-        st.session_state.page = "main"
-        st.rerun()
-    if not st.session_state.admin_logged_in:
+    items = pd.DataFrame([{"항목": "보호구", "내용": "개인보호구 착용"}, {"항목": "정리", "내용": "작업장
