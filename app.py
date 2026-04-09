@@ -46,61 +46,46 @@ if "page" not in st.session_state:
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
-# [4. 스타일 디자인 - 너비 350px 칼맞춤]
+# [4. 스타일 디자인 - 너비 일관성 확보]
 st.markdown("""
     <style>
         header { visibility: hidden !important; }
         footer { visibility: hidden !important; }
         .stApp { background-color: #F0F8FF; }
         
+        /* 헤더 박스 */
         .main-header { 
             background-color: #1E3A8A; 
-            padding: 1.5rem 0.5rem; 
-            border-radius: 0 0 30px 30px; 
+            padding: 1.5rem; 
+            border-radius: 0 0 20px 20px; 
             text-align: center; 
             margin-bottom: 2rem;
-        }
-        
-        /* 모든 요소의 부모 컨테이너 중앙 정렬 */
-        [data-testid="stVerticalBlock"] {
-            align-items: center !important;
-            gap: 0px !important;
+            color: white;
         }
 
-        /* 공지사항 박스와 버튼 너비를 350px로 강제 고정 */
-        .unified-content {
-            width: 350px !important;
-            box-sizing: border-box !important;
-            margin: 0 auto !important;
+        /* 공지사항 박스 - 버튼과 너비 통일 */
+        .notice-card {
+            background-color: #DBEAFE;
+            border: 2px solid #1E3A8A;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            color: #1E3A8A;
         }
 
-        .notice-box { 
-            background-color: #DBEAFE; 
-            border: 2px solid #1E3A8A; 
-            padding: 15px; 
-            border-radius: 15px; 
-            margin-bottom: 15px;
-            text-align: left;
-            width: 350px !important;
-            box-sizing: border-box !important;
-        }
-
-        /* 스트림릿 버튼 스타일 강제 고정 */
-        div.stButton > button { 
-            width: 350px !important;
-            min-height: 4rem;
-            border-radius: 15px; 
-            font-weight: 700; 
-            font-size: 1rem !important;
+        /* 버튼 전체 너비 및 스타일 */
+        div.stButton > button {
+            width: 100% !important;
+            height: 4.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem !important;
             border: 2px solid #1E3A8A;
             background-color: white;
             color: #1E3A8A;
-            margin-bottom: 12px !important;
-            box-sizing: border-box !important;
-            white-space: normal !important;
-            word-break: keep-all !important;
+            margin-bottom: 10px;
+            white-space: nowrap !important; /* 글자 한 줄 고정 */
         }
-        
         div.stButton > button:hover {
             background-color: #1E3A8A !important;
             color: white !important;
@@ -127,38 +112,57 @@ team_data = {
 
 # [5. 메인 화면 로직]
 if st.session_state.page == "main":
-    st.markdown('''
-        <div class="main-header">
-            <h1 style="color:white; margin:0;">⛑️ TBM</h1>
-            <p style="color:white; margin:0; opacity:0.8;">안전점검 시스템</p>
-        </div>
-    ''', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>⛑️ TBM</h1><p>안전점검 시스템</p></div>', unsafe_allow_html=True)
     
-    # 공지사항
-    current_notice = load_notice()
-    display_text = current_notice.replace("\n", "<br>")
-    st.markdown(f'''
-        <div class="notice-box">
-            <b style="color:#1E3A8A;">📢 금일 안전 지시사항</b><br>
-            <span style="color:#1E3A8A; font-size:0.95rem;">{display_text}</span>
-        </div>
-    ''', unsafe_allow_html=True)
-    
-    # 버튼 (CSS에서 350px로 고정됨)
-    if st.button("📝 금일 TBM 점검 작성"):
-        st.session_state.page = "tbm_write"
-        st.rerun()
-    if st.button("📊 실시간 점검 현황 확인"):
-        st.session_state.page = "tbm_status"
-        st.rerun()
-    if st.button("⚙️ 시스템 관리자 페이지"):
-        st.session_state.page = "tbm_admin"
-        st.rerun()
+    # 공지사항과 버튼을 같은 컬럼 내에 배치하여 너비 통일
+    col1, col2, col3 = st.columns([1, 8, 1]) # 좌우 여백을 주어 중앙으로 모음
+    with col2:
+        current_notice = load_notice()
+        display_text = current_notice.replace("\n", "<br>")
+        st.markdown(f'<div class="notice-card"><b>📢 안전 지시사항</b><br>{display_text}</div>', unsafe_allow_html=True)
+        
+        if st.button("📝 금일 TBM 점검 작성", use_container_width=True):
+            st.session_state.page = "tbm_write"
+            st.rerun()
+        if st.button("📊 실시간 점검 현황 확인", use_container_width=True):
+            st.session_state.page = "tbm_status"
+            st.rerun()
+        if st.button("⚙️ 시스템 관리자 페이지", use_container_width=True):
+            st.session_state.page = "tbm_admin"
+            st.rerun()
 
 # [6. 작성 페이지]
 elif st.session_state.page == "tbm_write":
-    if st.button("⬅️ 메인으로 돌아가기"):
-        st.session_state.page = "main"
-        st.rerun()
+    st.button("⬅️ 메인화면", on_click=lambda: st.session_state.update({"page": "main"}))
+    st.subheader("📝 점검 작성")
     
-    st.subheader("📝
+    selected_team = st.selectbox("부서", list(team_data.keys()))
+    final_name = st.text_input("성함")
+    selected_job = st.selectbox("작업명", ["공통", "분해", "중량물", "전기", "세척", "조립", "시험"])
+    
+    st.write("**✅ 체크리스트**")
+    df = pd.DataFrame([{"항목": "보호구/정리", "확인": False}])
+    st.data_editor(df, hide_index=True, use_container_width=True)
+    
+    st.write("**✒️ 서명**")
+    st_canvas(height=150, key="canvas_write")
+    
+    if st.button("제출", use_container_width=True):
+        if final_name:
+            try:
+                kst = timezone(timedelta(hours=9))
+                now = datetime.datetime.now(kst)
+                data_sheet.append_row([now.strftime('%Y-%m-%d'), selected_team, final_name, selected_job, "정상", now.strftime('%H:%M:%S'), "✅"])
+                st.success("저장 완료")
+                time.sleep(1)
+                st.session_state.page = "main"
+                st.rerun()
+            except:
+                st.error("오류 발생")
+
+# [7. 현황 페이지]
+elif st.session_state.page == "tbm_status":
+    st.button("⬅️ 메인화면", on_click=lambda: st.session_state.update({"page": "main"}))
+    st.subheader("📊 실시간 현황")
+    try:
+        raw =
