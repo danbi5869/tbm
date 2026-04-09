@@ -27,7 +27,7 @@ def get_sheets():
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_key("1ubTkHSTQbN4adDuPueDO_jqj8XN1RYbh1j5H-NnBBRc")
         data_sheet = spreadsheet.get_worksheet(0)
-        return data_sheet, data_sheet # 일단 동일 시트 사용
+        return data_sheet, data_sheet
     except:
         return None, None
 
@@ -65,14 +65,14 @@ team_data = {
     "차륜": ["지민석", "곽동영", "안형륜", "이동호"], "탐상": ["박윤찬", "이동호"]
 }
 
-# [4. 스타일 디자인 - 요청사항 반영]
+# [4. 스타일 디자인 - 중앙 정렬 강화]
 st.markdown("""
     <style>
         header { visibility: hidden !important; }
         footer { visibility: hidden !important; }
         .stApp { background-color: #F0F8FF; }
         
-        /* 메인 헤더 박스 */
+        /* 메인 헤더 */
         .main-header { 
             background-color: #1E3A8A; 
             padding: 1.8rem 0.5rem; 
@@ -81,69 +81,55 @@ st.markdown("""
             margin-bottom: 2rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+        .header-top { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .header-emoji { font-size: 2.8rem !important; }
+        .header-tbm { color: white !important; font-size: 3rem !important; font-weight: 900 !important; margin: 0; }
+        .header-sub-box { display: inline-block; background-color: rgba(255, 255, 255, 0.15); padding: 5px 20px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.3); margin-top: 5px; }
+        .header-sub-text { color: #FFFFFF !important; font-size: 1.2rem !important; font-weight: 500 !important; margin: 0; letter-spacing: 1px; }
         
-        /* 상단 줄: 이모티콘 + TBM */
-        .header-top {
+        /* 버튼 중앙 정렬 및 디자인 */
+        div.stButton {
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 5px;
-        }
-        .header-emoji { font-size: 2.8rem !important; }
-        .header-tbm { 
-            color: white !important; 
-            font-size: 3rem !important; 
-            font-weight: 900 !important;
-            margin: 0;
-        }
-
-        /* 하단 줄: 안전점검 시스템 (칸 느낌) */
-        .header-sub-box {
-            display: inline-block;
-            background-color: rgba(255, 255, 255, 0.15);
-            padding: 5px 20px;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            margin-top: 5px;
-        }
-        .header-sub-text { 
-            color: #FFFFFF !important; 
-            font-size: 1.3rem !important; 
-            font-weight: 500 !important;
-            margin: 0;
-            letter-spacing: 2px;
         }
         
-        /* 버튼 스타일 */
         div.stButton > button { 
-            width: 100% !important; 
-            max-width: 400px !important; 
-            min-height: 4.5rem;
-            border-radius: 15px; 
+            width: 90% !important; 
+            max-width: 380px !important; 
+            min-height: 4.8rem;
+            border-radius: 18px; 
             font-weight: 700; 
-            font-size: 1.1rem !important;
-            border: 2px solid #1E3A8A;
+            font-size: 1.15rem !important;
+            border: 2.5px solid #1E3A8A;
             background-color: white;
             color: #1E3A8A;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin: 10px auto !important; /* 자동 여백으로 중앙 고정 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+
+        div.stButton > button:hover {
+            background-color: #1E3A8A !important;
+            color: white !important;
         }
         
+        /* 공지사항 박스 중앙 정렬 */
+        .notice-container { display: flex; justify-content: center; width: 100%; }
         .notice-box { 
             background-color: #DBEAFE; 
             border-left: 5px solid #1E3A8A; 
-            padding: 15px; 
+            padding: 18px; 
             border-radius: 12px; 
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             width: 90%;
-            max-width: 400px;
+            max-width: 380px;
+            text-align: left;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # [5. 메인 화면 로직]
 if st.session_state.page == "main":
-    # ⛑️ TBM (첫줄) / 안전점검 시스템 (둘째줄) 구조
     st.markdown('''
         <div class="main-header">
             <div class="header-top">
@@ -156,34 +142,44 @@ if st.session_state.page == "main":
         </div>
     ''', unsafe_allow_html=True)
     
-    st.markdown('<div style="display: flex; flex-direction: column; align-items: center;">', unsafe_allow_html=True)
-    
+    # 공지사항 박스
     current_notice = load_notice()
     display_text = current_notice.replace("\n", "<br>")
     st.markdown(f'''
-        <div class="notice-box">
-            <b>📢 금일 안전 지시사항</b><br>{display_text}
+        <div class="notice-container">
+            <div class="notice-box">
+                <b style="color:#1E3A8A; font-size: 1.1rem;">📢 금일 안전 지시사항</b><br>
+                <p style="margin-top: 8px; color: #1E3A8A; line-height: 1.5;">{display_text}</p>
+            </div>
         </div>
     ''', unsafe_allow_html=True)
     
+    # 버튼 섹션 (자동으로 스타일 시트에 의해 중앙 정렬됨)
     if st.button("📝 금일 TBM 점검 작성"):
         st.session_state.page = "tbm_write"; st.rerun()
+        
     if st.button("📊 실시간 점검 현황 확인"):
         st.session_state.page = "tbm_status"; st.rerun()
+        
     if st.button("⚙️ 시스템 관리자 페이지"):
         st.session_state.page = "tbm_admin"; st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# (이하 작성/현황/관리자 페이지 로직은 이전과 동일하므로 생략하거나 기존 코드를 붙여넣으시면 됩니다)
+# 📝 점검 작성 페이지
 elif st.session_state.page == "tbm_write":
+    # (작성 페이지 로직 유지)
     if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
     st.subheader("🏗️ TBM 점검 작성")
-    # ... 기존 입력 폼 코드 ...
+    # ... 나머지 코드 생략 (기존 것 사용) ...
 
+# 📊 현황 확인 페이지
 elif st.session_state.page == "tbm_status":
+    # (현황 페이지 로직 유지)
     if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
-    # ... 기존 데이터 테이블 코드 ...
+    st.subheader("📊 실시간 점검 현황")
+    # ... 나머지 코드 생략 (기존 것 사용) ...
 
+# ⚙️ 관리자 페이지
 elif st.session_state.page == "tbm_admin":
+    # (관리자 페이지 로직 유지)
     if st.button("⬅️ 메인으로"): st.session_state.page = "main"; st.rerun()
-    # ... 기존 관리자 로그인 및 저장 코드 ...
+    # ... 나머지 코드 생략 (기존 것 사용) ...
