@@ -272,4 +272,3 @@ elif st.session_state.page == "tbm_admin":
         new_notice = st.text_area("공지 수정", st.session_state.safety_notice, height=150)
         if st.button("저장"): st.session_state.safety_notice = new_notice; st.success("저장됨")
         if st.button("로그아웃"): st.session_state.admin_logged_in = False; st.rerun()
- 이게 이제껏 한 프로그램이야. 앱화면에서 주소창없애는게 포함되어있니?
